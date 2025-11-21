@@ -26,6 +26,7 @@ function getVeltCliPath() {
     path.join(process.cwd(), 'node_modules', '@veltdev', 'add-velt-next-js', 'bin', 'velt.js'),
     path.join(process.env.HOME || process.env.USERPROFILE || '', '.velt-cli', 'bin', 'velt.js'),
     // Hardcoded fallback (for POC)
+    '/Users/yoenzhang/Downloads/add-velt-next-js/bin/velt.js',
     '/Users/samarthgoel/Documents/add-velt-next-js/bin/velt.js',
   ];
 
@@ -86,12 +87,17 @@ export async function runVeltCli({ installDir, apiKey, authToken }) {
       output = error.stdout?.toString() || error.message;
     }
 
-    return {
+    const result = {
       success: exitCode === 0,
       exitCode,
       output,
       cliPath,
     };
+
+    // Debug logging
+    console.error(`CLI execution result:`, result);
+
+    return result;
   } catch (error) {
     return {
       success: false,

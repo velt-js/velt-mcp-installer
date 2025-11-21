@@ -125,6 +125,10 @@ export async function installVeltFreestyle({ projectPath, server }) {
 
     const integration = await analyzeAndIntegrate({
       projectPath: resolvedPath,
+      config: {
+        apiKey: config.data.apiKey,
+        authToken: config.data.authToken,
+      },
       patterns: patterns.data,
     });
 
