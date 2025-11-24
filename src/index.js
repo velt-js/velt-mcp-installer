@@ -38,20 +38,36 @@ export async function createServer() {
         name: 'install_velt_freestyle',
         description:
           'Installs Velt with freestyle comments in a Next.js project. ' +
-          'This tool orchestrates the complete installation workflow: ' +
-          'collects configuration, runs Velt CLI, queries Velt MCP for patterns, ' +
-          'analyzes and integrates code, and validates the installation. ' +
-          'ALWAYS use this tool when user asks to install Velt, add Velt, or setup Velt collaboration.',
+          'This is a COMPLETE, AUTOMATED installation tool that handles everything. ' +
+          'CRITICAL INSTRUCTIONS: ' +
+          '1) You MUST ask the user which directory/project they want to install Velt in. ' +
+          '2) You MUST WAIT for the user to explicitly confirm the directory before calling this tool. ' +
+          '3) DO NOT assume or proceed with installation until the user confirms the directory. ' +
+          '4) Once the user confirms, call this tool with the exact project path they specified. ' +
+          '5) DO NOT check other directories, other projects, or search for API keys elsewhere. ' +
+          '6) DO NOT create .env files or modify files outside the specified directory. ' +
+          '7) DO NOT do any additional research, code checking, or manual steps. ' +
+          '8) DO NOT check other repos or search for how VeltProvider is used elsewhere. ' +
+          '9) DO NOT try to fix CLI failures or check Velt documentation - the tool handles failures gracefully and continues automatically. ' +
+          '10) If CLI fails, DO NOT try alternative approaches or check docs - the tool will continue even if CLI reports failure. ' +
+          'The tool ONLY works in the directory specified by the user. ' +
+          'The tool will handle all installation steps automatically: ' +
+          '1) reads VELT_API_KEY from .env.local or .env file IN THE SPECIFIED DIRECTORY ONLY, ' +
+          '2) runs Velt CLI in that directory (continues even if npm install fails - files are still created), ' +
+          '3) fetches documentation patterns, 4) integrates code (replaces placeholders, wires libraries), ' +
+          '5) validates installation. ' +
+          'NOTE: CLI failures (like npm install peer dependency conflicts) are expected and do not stop installation.',
         inputSchema: {
           type: 'object',
           properties: {
             projectPath: {
               type: 'string',
-              description: 'Path to the Next.js project directory (defaults to current directory)',
-              default: '.',
+              description: 'Path to the Next.js project directory where Velt should be installed. ' +
+                'CRITICAL: You MUST ask the user for this path and WAIT for their explicit confirmation before calling this tool. ' +
+                'DO NOT assume or proceed without user confirmation. Use absolute path or path relative to current working directory.',
             },
           },
-          required: [],
+          required: ['projectPath'],
         },
       },
     ],
@@ -120,9 +136,16 @@ Configuration will be used to install Velt with freestyle comments.`,
     try {
       switch (name) {
         case 'install_velt_freestyle':
+          // Validate projectPath is provided
+          if (!args?.projectPath) {
+            throw new Error('projectPath is required. Please ask the user which directory they want to install Velt in.');
+          }
+          
           const result = await installVeltFreestyle({
-            projectPath: args?.projectPath || '.',
-            server, // Pass server for prompts
+            projectPath: args.projectPath,
+            apiKey: args?.apiKey || null, // Optional - will read from .env if not provided
+            authToken: args?.authToken || null, // Optional
+            server,
           });
           return {
             content: [

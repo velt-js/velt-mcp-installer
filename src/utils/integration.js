@@ -343,8 +343,11 @@ function wireReactFlowCursor(structure, filesModified, componentsAdded, integrat
 
     // Check if VeltCursor already exists
     if (content.includes('VeltCursor')) {
+      console.error('      ✓ VeltCursor already present');
       return; // Already wired
     }
+    
+    console.error('      ✓ Adding VeltCursor component (ReactFlow integration)');
 
     // Add import if not present
     if (!content.includes("import { VeltCursor }")) {
@@ -699,10 +702,12 @@ export async function analyzeAndIntegrate(options) {
     }
 
     // Step 4: Replace API key in page.tsx
+    console.error('   🔑 Replacing API key placeholders...');
     replaceApiKeyInPage(structure, config.apiKey, filesModified, integrationPoints, validationIssues);
 
     // Step 5: Replace auth token in JWT route if provided
     if (config.authToken) {
+      console.error('   🔐 Replacing auth token placeholders...');
       replaceAuthTokenInRoute(structure, config.apiKey, config.authToken, filesModified, integrationPoints, validationIssues);
     }
 
@@ -710,10 +715,20 @@ export async function analyzeAndIntegrate(options) {
 
     // ReactFlow cursor (automatic wiring)
     if (patterns.hasReactFlow) {
+      console.error('   🔌 Wiring ReactFlow cursor integration (from detected library)...');
       wireReactFlowCursor(structure, filesModified, componentsAdded, integrationPoints, validationIssues);
     }
 
     // Other libraries (TODO comments)
+    const librariesToWire = [];
+    if (patterns.hasTiptap) librariesToWire.push('Tiptap');
+    if (patterns.hasCodeMirror) librariesToWire.push('CodeMirror');
+    if (patterns.hasAgGrid) librariesToWire.push('AG-Grid');
+    if (patterns.hasTanStack) librariesToWire.push('TanStack');
+    
+    if (librariesToWire.length > 0) {
+      console.error(`   📝 Adding TODO comments for: ${librariesToWire.join(', ')}`);
+    }
     addLibraryTodoComments(structure, patterns, filesModified, integrationPoints, validationIssues);
 
     // Step 7: Run validation checks
