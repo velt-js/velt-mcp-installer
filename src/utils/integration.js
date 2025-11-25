@@ -9,6 +9,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { applyHeaderPositioning, findVeltSidebarFiles } from './header-positioning.js';
 
 /**
  * @typedef {Object} IntegrationConfig
@@ -731,10 +732,43 @@ export async function analyzeAndIntegrate(options) {
     }
     addLibraryTodoComments(structure, patterns, filesModified, integrationPoints, validationIssues);
 
-    // Step 7: Run validation checks
+    // Step 7: Apply header positioning if specified
+    if (config.headerPosition) {
+      console.error(`   📍 Applying header positioning: ${config.headerPosition}...`);
+      const sidebarFiles = findVeltSidebarFiles(projectPath);
+
+      for (const filePath of sidebarFiles) {
+        applyHeaderPositioning(filePath, config.headerPosition, filesModified, integrationPoints);
+      }
+    }
+
+    // Step 8: Handle comment-type specific integration
+    if (config.commentType && config.targetPlacement) {
+      console.error(`   💬 Applying ${config.commentType} comment integration...`);
+
+      if (config.commentType === 'popover' && config.targetPlacement.file) {
+        // Add popover-specific integration
+        integrationPoints.push({
+          file: config.targetPlacement.file,
+          type: 'popover-target',
+          description: `Recommended file for popover comments: ${config.targetPlacement.file}`,
+          implementationGuide: config.targetPlacement.implementationGuide,
+        });
+      } else if (config.commentType === 'freestyle' && config.targetPlacement.file) {
+        // Add freestyle-specific integration
+        integrationPoints.push({
+          file: config.targetPlacement.file,
+          type: 'freestyle-target',
+          description: `Recommended file for freestyle comments: ${config.targetPlacement.file}`,
+          implementationGuide: config.targetPlacement.implementationGuide,
+        });
+      }
+    }
+
+    // Step 9: Run validation checks
     runValidationChecks(structure, config, validationIssues);
 
-    // Step 8: Return result
+    // Step 10: Return result
     const success = validationIssues.length === 0;
 
     return {

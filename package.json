@@ -21,7 +21,8 @@
   "author": "Velt",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0"
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "playwright": "^1.48.0"
   },
   "engines": {
     "node": ">=18.0.0"

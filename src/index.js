@@ -13,6 +13,9 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { installVeltFreestyle } from './tools/orchestrator.js';
+import { installVeltInteractive } from './tools/interactive-installer.js';
+import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
+import { detectCommentPlacement } from './utils/comment-detector.js';
 
 /**
  * Creates and starts the MCP server
@@ -35,36 +38,131 @@ export async function createServer() {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
-        name: 'install_velt_freestyle',
+        name: 'take_project_screenshot',
         description:
-          'Installs Velt with freestyle comments in a Next.js project. ' +
-          'This is a COMPLETE, AUTOMATED installation tool that handles everything. ' +
-          'CRITICAL INSTRUCTIONS: ' +
-          '1) You MUST ask the user which directory/project they want to install Velt in. ' +
-          '2) You MUST WAIT for the user to explicitly confirm the directory before calling this tool. ' +
-          '3) DO NOT assume or proceed with installation until the user confirms the directory. ' +
-          '4) Once the user confirms, call this tool with the exact project path they specified. ' +
-          '5) DO NOT check other directories, other projects, or search for API keys elsewhere. ' +
-          '6) DO NOT create .env files or modify files outside the specified directory. ' +
-          '7) DO NOT do any additional research, code checking, or manual steps. ' +
-          '8) DO NOT check other repos or search for how VeltProvider is used elsewhere. ' +
-          '9) DO NOT try to fix CLI failures or check Velt documentation - the tool handles failures gracefully and continues automatically. ' +
-          '10) If CLI fails, DO NOT try alternative approaches or check docs - the tool will continue even if CLI reports failure. ' +
-          'The tool ONLY works in the directory specified by the user. ' +
-          'The tool will handle all installation steps automatically: ' +
-          '1) reads VELT_API_KEY from .env.local or .env file IN THE SPECIFIED DIRECTORY ONLY, ' +
-          '2) runs Velt CLI in that directory (continues even if npm install fails - files are still created), ' +
-          '3) fetches documentation patterns, 4) integrates code (replaces placeholders, wires libraries), ' +
-          '5) validates installation. ' +
-          'NOTE: CLI failures (like npm install peer dependency conflicts) are expected and do not stop installation.',
+          'Takes a screenshot of the user\'s running Next.js application. ' +
+          'WORKFLOW: This tool should be called FIRST in the Velt installation workflow to help identify where to add comments. ' +
+          'REQUIREMENTS: ' +
+          '1) The user must have their Next.js dev server running (npm run dev) on localhost:3000 or another port. ' +
+          '2) After taking the screenshot, you should show it to the user and ask them to describe which part of their webpage they want to add comments to (e.g., "header", "sidebar", "main content area"). ' +
+          '3) Then ask them which type of comments they want: Freestyle (click anywhere) or Popover (attached to specific elements). ' +
+          '4) Use the detect_comment_placement tool with their responses to find the best files to modify. ' +
+          '5) Finally, use install_velt_freestyle or another installation tool to implement the selected comment type.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: 'URL to screenshot (default: http://localhost:3000)',
+            },
+            width: {
+              type: 'number',
+              description: 'Viewport width in pixels (default: 1920)',
+            },
+            height: {
+              type: 'number',
+              description: 'Viewport height in pixels (default: 1080)',
+            },
+            fullPage: {
+              type: 'boolean',
+              description: 'Capture full page or just viewport (default: false)',
+            },
+          },
+          required: [],
+        },
+      },
+      {
+        name: 'detect_comment_placement',
+        description:
+          'Analyzes the Next.js project structure to determine the best files and locations for placing Velt comments. ' +
+          'WORKFLOW: This tool should be called AFTER taking a screenshot and getting user input about where they want comments. ' +
+          'INPUT: Use the user\'s description of the target area (e.g., "header", "sidebar", "main content") and comment type (freestyle or popover). ' +
+          'OUTPUT: Returns ranked list of candidate files with implementation guidance. ' +
+          'USAGE: ' +
+          '1) Pass the targetDescription from what the user said about the screenshot ' +
+          '2) Pass the commentType based on user\'s choice (freestyle or popover) ' +
+          '3) Review the results with the user before proceeding to installation ' +
+          '4) Use the recommended placement information when calling installation tools',
         inputSchema: {
           type: 'object',
           properties: {
             projectPath: {
               type: 'string',
-              description: 'Path to the Next.js project directory where Velt should be installed. ' +
-                'CRITICAL: You MUST ask the user for this path and WAIT for their explicit confirmation before calling this tool. ' +
-                'DO NOT assume or proceed without user confirmation. Use absolute path or path relative to current working directory.',
+              description: 'Path to the Next.js project directory',
+            },
+            commentType: {
+              type: 'string',
+              enum: ['freestyle', 'popover'],
+              description: 'Type of comments to implement (freestyle or popover)',
+            },
+            targetDescription: {
+              type: 'string',
+              description: 'User\'s description of where to add comments (e.g., "header", "sidebar", "main content area"). This comes from the user\'s response when you showed them the screenshot.',
+            },
+            targetComponent: {
+              type: 'string',
+              description: 'Optional: specific component name if the user mentioned it',
+            },
+          },
+          required: ['projectPath', 'commentType'],
+        },
+      },
+      {
+        name: 'install_velt_interactive',
+        description:
+          '🌟 RECOMMENDED: Interactive Velt installation with step-by-step user guidance. ' +
+          'This tool provides the BEST user experience with screenshots and guided placement. ' +
+          '\n\nWORKFLOW TO FOLLOW: ' +
+          '1) Ask user to confirm the project directory ' +
+          '2) Ask user: "What type of comments would you like? (Freestyle or Popover)" ' +
+          '3) Ask user: "Where should the comments sidebar header be positioned? (top-left, top-right, bottom-left, bottom-right)" ' +
+          '4) Ask user: "Make sure your dev server is running (pnpm run dev). Is it running?" ' +
+          '5) Call this tool with all the collected information ' +
+          '\n\nThe tool will automatically: ' +
+          '- Take a screenshot of their app ' +
+          '- Detect the best files to place comments ' +
+          '- Install Velt with proper positioning ' +
+          '- Apply header positioning ' +
+          '- Validate the installation ' +
+          '\n\nIMPORTANT: This tool handles everything automatically once you provide the parameters. ' +
+          'DO NOT do manual file modifications, DO NOT check other directories, DO NOT try additional steps.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Path to the Next.js project directory',
+            },
+            commentType: {
+              type: 'string',
+              enum: ['freestyle', 'popover'],
+              description: 'Type of comments to install (freestyle or popover) - ASK THE USER',
+            },
+            headerPosition: {
+              type: 'string',
+              enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+              description: 'Position for the comments sidebar header - ASK THE USER (default: top-right)',
+            },
+            targetArea: {
+              type: 'string',
+              description: 'Optional: User description of where they want comments (e.g., "header", "main content", "product cards")',
+            },
+          },
+          required: ['projectPath', 'commentType'],
+        },
+      },
+      {
+        name: 'install_velt_freestyle',
+        description:
+          '⚠️  LEGACY: Basic Velt freestyle installation (no interactivity). ' +
+          'USE install_velt_interactive instead for better user experience. ' +
+          'This tool is kept for backward compatibility only.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Path to the Next.js project directory',
             },
           },
           required: ['projectPath'],
@@ -135,12 +233,136 @@ Configuration will be used to install Velt with freestyle comments.`,
 
     try {
       switch (name) {
+        case 'take_project_screenshot': {
+          const screenshotResult = await takeScreenshot({
+            url: args?.url || 'http://localhost:3000',
+            width: args?.width || 1920,
+            height: args?.height || 1080,
+            fullPage: args?.fullPage || false,
+          });
+
+          if (!screenshotResult.success) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      error: screenshotResult.error,
+                      hint: screenshotResult.hint,
+                    },
+                    null,
+                    2
+                  ),
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          // Return screenshot as image content
+          return {
+            content: [
+              {
+                type: 'image',
+                data: screenshotResult.data.base64,
+                mimeType: screenshotResult.data.mimeType,
+              },
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    message: `Screenshot captured from ${screenshotResult.data.url}`,
+                    size: `${screenshotResult.data.width}x${screenshotResult.data.height}`,
+                    instructions: 'Please show this screenshot to the user and ask them:\n1. Which part of the page they want to add comments to (e.g., header, sidebar, main content)\n2. What type of comments they want (Freestyle or Popover)\n\nThen use the detect_comment_placement tool with their answers.',
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        case 'detect_comment_placement': {
+          if (!args?.projectPath) {
+            throw new Error('projectPath is required');
+          }
+          if (!args?.commentType) {
+            throw new Error('commentType is required (freestyle or popover)');
+          }
+
+          const detectionResult = await detectCommentPlacement({
+            projectPath: args.projectPath,
+            commentType: args.commentType,
+            targetDescription: args?.targetDescription || '',
+            targetComponent: args?.targetComponent || '',
+          });
+
+          if (!detectionResult.success) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      error: detectionResult.error,
+                    },
+                    null,
+                    2
+                  ),
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(detectionResult.data, null, 2),
+              },
+            ],
+          };
+        }
+
+        case 'install_velt_interactive': {
+          // Validate required parameters
+          if (!args?.projectPath) {
+            throw new Error('projectPath is required. Please ask the user which directory they want to install Velt in.');
+          }
+          if (!args?.commentType) {
+            throw new Error('commentType is required. Please ask the user: "What type of comments would you like? (Freestyle or Popover)"');
+          }
+
+          const interactiveResult = await installVeltInteractive({
+            projectPath: args.projectPath,
+            commentType: args.commentType,
+            headerPosition: args?.headerPosition || 'top-right',
+            targetArea: args?.targetArea || '',
+            apiKey: args?.apiKey || null,
+            authToken: args?.authToken || null,
+            server,
+          });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(interactiveResult, null, 2),
+              },
+            ],
+          };
+        }
+
         case 'install_velt_freestyle':
           // Validate projectPath is provided
           if (!args?.projectPath) {
             throw new Error('projectPath is required. Please ask the user which directory they want to install Velt in.');
           }
-          
+
           const result = await installVeltFreestyle({
             projectPath: args.projectPath,
             apiKey: args?.apiKey || null, // Optional - will read from .env if not provided
