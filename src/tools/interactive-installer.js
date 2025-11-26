@@ -20,24 +20,34 @@ import fs from 'fs';
  *
  * @param {Object} params - Installation parameters
  * @param {string} params.projectPath - Path to Next.js project
+ * @param {string} params.apiKey - Required: Velt API key (provided by user)
+ * @param {string} params.authToken - Required: Velt auth token (provided by user)
  * @param {string} params.commentType - 'freestyle' or 'popover' (from user prompt)
  * @param {string} [params.headerPosition] - 'top-left', 'top-right', 'bottom-left', 'bottom-right'
  * @param {string} [params.targetArea] - User's description of where to add comments
- * @param {string} [params.apiKey] - Optional API key
- * @param {string} [params.authToken] - Optional auth token
+ * @param {string[]} [params.features] - Features to install (default: ['comments'])
  * @param {Object} params.server - MCP server instance
  * @returns {Promise<Object>} Installation report
  */
 export async function installVeltInteractive(params) {
   const {
     projectPath,
+    apiKey,
+    authToken,
     commentType,
     headerPosition = 'top-right',
     targetArea = '',
-    apiKey,
-    authToken,
+    features = ['comments'],
     server,
   } = params;
+
+  // Validate required parameters
+  if (!apiKey) {
+    throw new Error('API key is required. Please provide your Velt API key from https://console.velt.dev');
+  }
+  if (!authToken) {
+    throw new Error('Auth token is required. Please provide your Velt auth token from https://console.velt.dev');
+  }
 
   const report = {
     status: 'in_progress',
@@ -52,29 +62,38 @@ export async function installVeltInteractive(params) {
   try {
     console.error('\n🚀 Starting Interactive Velt Installation');
     console.error(`📁 Project: ${resolvedPath}`);
+    console.error(`🔑 API Key: ${apiKey.substring(0, 8)}...`);
+    console.error(`🔐 Auth Token: ${authToken.substring(0, 8)}...`);
     console.error(`💬 Comment Type: ${commentType}`);
-    console.error(`📍 Header Position: ${headerPosition}\n`);
+    console.error(`📍 Header Position: ${headerPosition}`);
+    console.error(`✨ Features: ${features.join(', ')}\n`);
 
-    // === STEP 1: Collect Configuration ===
-    console.error('📋 Step 1/7: Collecting configuration...');
+    // === STEP 1: Prepare Configuration ===
+    console.error('📋 Step 1/7: Preparing configuration...');
     report.steps.push({
       step: 1,
-      name: 'collect_configuration',
+      name: 'prepare_configuration',
       status: 'running',
     });
 
-    const config = await collectConfiguration({
-      projectPath: resolvedPath,
-      apiKey,
-      authToken,
-    });
-
-    if (!config.success) {
-      throw new Error(`Configuration failed: ${config.error}`);
-    }
+    // Use provided API key and auth token (no .env file needed)
+    const config = {
+      success: true,
+      data: {
+        installDir: resolvedPath,
+        apiKey: apiKey,
+        authToken: authToken,
+      },
+    };
 
     report.steps[0].status = 'complete';
-    console.error('✅ Step 1/7: Configuration collected\n');
+    report.steps[0].result = {
+      installDir: config.data.installDir,
+      hasApiKey: true,
+      hasAuthToken: true,
+      source: 'user-provided',
+    };
+    console.error('✅ Step 1/7: Configuration prepared (using provided keys)\n');
 
     // === STEP 2: Check/Start Dev Server ===
     console.error('🔄 Step 2/7: Ensuring dev server is running...');
@@ -262,7 +281,12 @@ export async function installVeltInteractive(params) {
       commentType,
       headerPosition,
       targetArea,
+      features,
+      keysUsed: 'user-provided',
+      apiKeyPreview: `${apiKey.substring(0, 8)}...`,
+      authTokenPreview: `${authToken.substring(0, 8)}...`,
       filesModified: integration.data?.filesModified || [],
+      componentsAdded: integration.data?.componentsAdded || [],
       recommendedFile: placementResult.data?.recommendedPlacement?.file || 'N/A',
     };
 

@@ -77,7 +77,7 @@ export function applyHeaderPositioning(filePath, position, filesModified, integr
       );
     } else {
       // Pattern 2: Opening tag
-      const openingTagPattern = /<VeltCommentsSidebar(\s[^>]*)?>/ g;
+      const openingTagPattern = /<VeltCommentsSidebar(\s[^>]*)?>/g;
       if (openingTagPattern.test(content)) {
         content = content.replace(
           openingTagPattern,

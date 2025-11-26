@@ -112,26 +112,45 @@ export async function createServer() {
         description:
           '🌟 RECOMMENDED: Interactive Velt installation with step-by-step user guidance. ' +
           'This tool provides the BEST user experience with screenshots and guided placement. ' +
-          '\n\nWORKFLOW TO FOLLOW: ' +
-          '1) Ask user to confirm the project directory ' +
-          '2) Ask user: "What type of comments would you like? (Freestyle or Popover)" ' +
-          '3) Ask user: "Where should the comments sidebar header be positioned? (top-left, top-right, bottom-left, bottom-right)" ' +
-          '4) Ask user: "Make sure your dev server is running (pnpm run dev). Is it running?" ' +
-          '5) Call this tool with all the collected information ' +
+          '\n\nWORKFLOW TO FOLLOW (Ask these questions in order): ' +
+          '1) Ask user: "Is this the correct directory: [show directory]?" - Wait for confirmation ' +
+          '2) Ask user: "What features do you want to install?" ' +
+          '   Options: ' +
+          '   - Comments (Freestyle - click anywhere, or Popover - attach to elements) ' +
+          '   - Presence (live cursors and avatars) ' +
+          '   - Notifications ' +
+          '   - Recorder ' +
+          '   Tell them: "For now, we\'ll focus on Comments. Choose Freestyle or Popover." ' +
+          '3) Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
+          '4) Ask user: "Please provide your Velt Auth Token (from https://console.velt.dev)" ' +
+          '5) Ask user: "Where should the comments sidebar header be positioned? (top-left, top-right, bottom-left, bottom-right)" ' +
+          '6) Ask user: "Make sure your dev server is running (pnpm run dev). Is it running?" ' +
+          '7) Call this tool with all the collected information ' +
           '\n\nThe tool will automatically: ' +
           '- Take a screenshot of their app ' +
           '- Detect the best files to place comments ' +
-          '- Install Velt with proper positioning ' +
+          '- Install Velt with the provided API keys (NO .env file needed) ' +
           '- Apply header positioning ' +
           '- Validate the installation ' +
-          '\n\nIMPORTANT: This tool handles everything automatically once you provide the parameters. ' +
-          'DO NOT do manual file modifications, DO NOT check other directories, DO NOT try additional steps.',
+          '\n\nIMPORTANT: ' +
+          '- This tool uses the API keys you provide directly (does NOT read from .env files) ' +
+          '- DO NOT do manual file modifications ' +
+          '- DO NOT check other directories ' +
+          '- DO NOT try additional steps after calling this tool',
         inputSchema: {
           type: 'object',
           properties: {
             projectPath: {
               type: 'string',
-              description: 'Path to the Next.js project directory',
+              description: 'Path to the Next.js project directory - Must be confirmed by user',
+            },
+            apiKey: {
+              type: 'string',
+              description: 'Velt API Key from https://console.velt.dev - REQUIRED, ask user for this',
+            },
+            authToken: {
+              type: 'string',
+              description: 'Velt Auth Token from https://console.velt.dev - REQUIRED, ask user for this',
             },
             commentType: {
               type: 'string',
@@ -143,12 +162,20 @@ export async function createServer() {
               enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
               description: 'Position for the comments sidebar header - ASK THE USER (default: top-right)',
             },
+            features: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['comments', 'presence', 'notifications', 'recorder'],
+              },
+              description: 'Features to install - For now, only "comments" is fully supported',
+            },
             targetArea: {
               type: 'string',
-              description: 'Optional: User description of where they want comments (e.g., "header", "main content", "product cards")',
+              description: 'Optional: User description of where they want comments (e.g., "header", "main content")',
             },
           },
-          required: ['projectPath', 'commentType'],
+          required: ['projectPath', 'apiKey', 'authToken', 'commentType'],
         },
       },
       {
@@ -331,7 +358,13 @@ Configuration will be used to install Velt with freestyle comments.`,
         case 'install_velt_interactive': {
           // Validate required parameters
           if (!args?.projectPath) {
-            throw new Error('projectPath is required. Please ask the user which directory they want to install Velt in.');
+            throw new Error('projectPath is required. Please ask the user: "Is this the correct directory: [show directory]?"');
+          }
+          if (!args?.apiKey) {
+            throw new Error('apiKey is required. Please ask the user: "Please provide your Velt API Key (from https://console.velt.dev)"');
+          }
+          if (!args?.authToken) {
+            throw new Error('authToken is required. Please ask the user: "Please provide your Velt Auth Token (from https://console.velt.dev)"');
           }
           if (!args?.commentType) {
             throw new Error('commentType is required. Please ask the user: "What type of comments would you like? (Freestyle or Popover)"');
@@ -342,8 +375,9 @@ Configuration will be used to install Velt with freestyle comments.`,
             commentType: args.commentType,
             headerPosition: args?.headerPosition || 'top-right',
             targetArea: args?.targetArea || '',
-            apiKey: args?.apiKey || null,
-            authToken: args?.authToken || null,
+            apiKey: args.apiKey, // Use provided API key (not from .env)
+            authToken: args.authToken, // Use provided auth token (not from .env)
+            features: args?.features || ['comments'],
             server,
           });
 
