@@ -14,6 +14,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { installVeltFreestyle } from './tools/orchestrator.js';
 import { installVeltInteractive } from './tools/interactive-installer.js';
+import { installVeltWithPlan } from './tools/plan-based-installer.js';
 import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
 import { detectCommentPlacement } from './utils/comment-detector.js';
 
@@ -110,8 +111,8 @@ export async function createServer() {
       {
         name: 'install_velt_interactive',
         description:
-          '🌟 RECOMMENDED: Interactive Velt installation with step-by-step user guidance. ' +
-          'This tool provides the BEST user experience with screenshots and guided placement. ' +
+          '🌟 RECOMMENDED: Interactive Velt installation with AI-guided implementation. ' +
+          'This tool orchestrates setup and generates a PLAN for you to execute. ' +
           '\n\nWORKFLOW TO FOLLOW (Ask these questions in order): ' +
           '1) Ask user: "Is this the correct directory: [show directory]?" - Wait for confirmation ' +
           '2) Ask user: "What features do you want to install?" ' +
@@ -126,17 +127,23 @@ export async function createServer() {
           '5) Ask user: "Where should the comments sidebar header be positioned? (top-left, top-right, bottom-left, bottom-right)" ' +
           '6) Ask user: "Make sure your dev server is running (pnpm run dev). Is it running?" ' +
           '7) Call this tool with all the collected information ' +
-          '\n\nThe tool will automatically: ' +
+          '\n\nThe tool will: ' +
+          '- Run Velt CLI to install base files ' +
           '- Take a screenshot of their app ' +
-          '- Detect the best files to place comments ' +
-          '- Install Velt with the provided API keys (NO .env file needed) ' +
-          '- Apply header positioning ' +
-          '- Validate the installation ' +
+          '- Scan the codebase and detect libraries ' +
+          '- Query Velt Docs (with fallback to docs.velt.dev) for implementation details ' +
+          '- Generate a detailed IMPLEMENTATION PLAN ' +
+          '\n\nAFTER CALLING THIS TOOL: ' +
+          '- The tool returns a PLAN in markdown format (like Cursor\'s plan mode) ' +
+          '- YOU (the AI) must read the plan and execute it step-by-step ' +
+          '- Follow each step in the plan to complete the installation ' +
+          '- Modify the detected files according to the plan\'s instructions ' +
+          '- Replace placeholders with actual API keys provided by user ' +
           '\n\nIMPORTANT: ' +
-          '- This tool uses the API keys you provide directly (does NOT read from .env files) ' +
-          '- DO NOT do manual file modifications ' +
-          '- DO NOT check other directories ' +
-          '- DO NOT try additional steps after calling this tool',
+          '- This tool does NOT complete the installation - it prepares and plans it ' +
+          '- YOU must execute the returned plan to finish the installation ' +
+          '- The plan includes code examples and detailed instructions ' +
+          '- Follow the plan\'s checklist sequentially',
         inputSchema: {
           type: 'object',
           properties: {
@@ -370,25 +377,40 @@ Configuration will be used to install Velt with freestyle comments.`,
             throw new Error('commentType is required. Please ask the user: "What type of comments would you like? (Freestyle or Popover)"');
           }
 
-          const interactiveResult = await installVeltInteractive({
+          // Use the new plan-based installer
+          const planResult = await installVeltWithPlan({
             projectPath: args.projectPath,
             commentType: args.commentType,
             headerPosition: args?.headerPosition || 'top-right',
             targetArea: args?.targetArea || '',
-            apiKey: args.apiKey, // Use provided API key (not from .env)
-            authToken: args.authToken, // Use provided auth token (not from .env)
+            apiKey: args.apiKey,
+            authToken: args.authToken,
             features: args?.features || ['comments'],
             server,
           });
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(interactiveResult, null, 2),
-              },
-            ],
-          };
+          // Return the plan for the AI to execute
+          if (planResult.status === 'plan_generated' && planResult.plan) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Installation preparation complete! Here's your implementation plan:\n\n${planResult.plan}\n\n---\n\nIMPORTANT: Please follow this plan step-by-step to complete the Velt installation. Each step includes detailed instructions and code examples. Make sure to replace all placeholders (YOUR_VELT_API_KEY, YOUR_VELT_AUTH_TOKEN) with the actual values provided by the user.`,
+                },
+              ],
+            };
+          } else {
+            // If plan generation failed, return error details
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(planResult, null, 2),
+                },
+              ],
+              isError: true,
+            };
+          }
         }
 
         case 'install_velt_freestyle':
