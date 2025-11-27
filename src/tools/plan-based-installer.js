@@ -10,7 +10,7 @@ import { detectLibraries } from '../utils/velt-mcp.js';
 import { takeScreenshot } from '../utils/screenshot.js';
 import { detectCommentPlacement } from '../utils/comment-detector.js';
 import { fetchCommentImplementation } from '../utils/velt-docs-fetcher.js';
-import { createVeltCommentsPlan } from '../utils/plan-formatter.js';
+import { createVeltCommentsPlan, createMultiFeaturePlan } from '../utils/plan-formatter.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -193,13 +193,23 @@ export async function installVeltWithPlan(params) {
     // === GENERATE PLAN ===
     console.error('📋 Generating implementation plan...\n');
 
-    const plan = createVeltCommentsPlan({
-      commentType,
-      implementation: implementation.data,
-      detectedFiles: detectedFiles.slice(0, 3), // Top 3 files
-      apiKey: `${apiKey.substring(0, 8)}...`,
-      headerPosition,
-    });
+    // Use multi-feature plan if user requested multiple features
+    const plan = features.length > 1 || (features.length === 1 && features[0] !== 'comments')
+      ? createMultiFeaturePlan({
+          features,
+          commentType,
+          implementation: implementation, // Pass full object with mdUrl and docUrl
+          detectedFiles: detectedFiles.slice(0, 3), // Top 3 files
+          apiKey: `${apiKey.substring(0, 8)}...`,
+          headerPosition,
+        })
+      : createVeltCommentsPlan({
+          commentType,
+          implementation: implementation, // Pass full object with mdUrl and docUrl
+          detectedFiles: detectedFiles.slice(0, 3), // Top 3 files
+          apiKey: `${apiKey.substring(0, 8)}...`,
+          headerPosition,
+        });
 
     report.plan = plan;
     report.status = 'plan_generated';

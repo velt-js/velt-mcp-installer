@@ -113,37 +113,69 @@ export async function createServer() {
         description:
           '🌟 RECOMMENDED: Interactive Velt installation with AI-guided implementation. ' +
           'This tool orchestrates setup and generates a PLAN for you to execute. ' +
-          '\n\nWORKFLOW TO FOLLOW (Ask these questions in order): ' +
-          '1) Ask user: "Is this the correct directory: [show directory]?" - Wait for confirmation ' +
-          '2) Ask user: "What features do you want to install?" ' +
-          '   Options: ' +
-          '   - Comments (Freestyle - click anywhere, or Popover - attach to elements) ' +
-          '   - Presence (live cursors and avatars) ' +
-          '   - Notifications ' +
-          '   - Recorder ' +
-          '   Tell them: "For now, we\'ll focus on Comments. Choose Freestyle or Popover." ' +
-          '3) Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
-          '4) Ask user: "Please provide your Velt Auth Token (from https://console.velt.dev)" ' +
-          '5) Ask user: "Where should the comments sidebar header be positioned? (top-left, top-right, bottom-left, bottom-right)" ' +
-          '6) Ask user: "Make sure your dev server is running (pnpm run dev). Is it running?" ' +
-          '7) Call this tool with all the collected information ' +
+          '\n\nWORKFLOW TO FOLLOW - YOU MUST ASK ALL QUESTIONS BEFORE CALLING THE TOOL: ' +
+          '\n\nSTEP 1 - CONFIRM DIRECTORY:' +
+          '  Ask user: "Is this the correct directory: [show directory]?" ' +
+          '  Wait for confirmation before proceeding ' +
+          '\n\nSTEP 2 - SELECT FEATURES:' +
+          '  Ask user: "What features do you want to install?" ' +
+          '  Show ALL options: ' +
+          '    📝 Comments (Freestyle, Popover, Page, Text, Inline) ' +
+          '    👥 Presence - show live users with avatars ' +
+          '    🖱️ Cursors - real-time cursor tracking ' +
+          '    🔔 Notifications - notification center ' +
+          '    🎥 Recorder - screen/audio recording ' +
+          '  User can choose ANY combination ' +
+          '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
+          '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
+          '  This is REQUIRED - do not proceed without it ' +
+          '\n\nSTEP 4 - GET AUTH TOKEN (REQUIRED):' +
+          '  Ask user: "Please provide your Velt Auth Token (from https://console.velt.dev)" ' +
+          '  This is REQUIRED - do not proceed without it ' +
+          '\n\nSTEP 5 - SIDEBAR POSITION (if comments selected):' +
+          '  Ask user: "Where should the comments sidebar header be positioned?" ' +
+          '  Options: top-left, top-right, bottom-left, bottom-right ' +
+          '\n\nSTEP 6 - CONFIRM DEV SERVER:' +
+          '  Ask user: "Make sure your dev server is running (npm/pnpm/yarn run dev). Is it running on localhost?" ' +
+          '\n\nSTEP 7 - CALL TOOL:' +
+          '  Only after collecting ALL information above, call this tool with complete parameters ' +
+          '  IMPORTANT: Set commentType to the specific type user wants (freestyle/popover/page/text/inline) ' +
+          '  IMPORTANT: Set features array to ALL features user wants (e.g., ["comments", "presence", "cursors"]) ' +
+          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features ' +
           '\n\nThe tool will: ' +
-          '- Run Velt CLI to install base files ' +
-          '- Take a screenshot of their app ' +
+          '- Run Velt CLI to install base files (auth, user setup, document setup) ' +
+          '- Take a screenshot of their running app ' +
           '- Scan the codebase and detect libraries ' +
-          '- Query Velt Docs (with fallback to docs.velt.dev) for implementation details ' +
+          '- Fetch implementation details from Velt Docs markdown URLs (ex: https://docs.velt.dev/[feature]/setup.md) ' +
           '- Generate a detailed IMPLEMENTATION PLAN ' +
+          '\n\nCRITICAL - WHAT TO USE FROM VELT CLI vs .MD DOCS: ' +
+          '- FROM CLI: ONLY use authentication setup, user setup, and document setup ' +
+          '- FROM .MD DOCS: Get ALL component implementations (VeltComments, VeltPresence, VeltCursor, etc.) ' +
+          '- NEVER use: VeltTools, ui-customization folder (unless user explicitly asks for customization) ' +
+          '- NEVER install: Components the user did not request ' +
           '\n\nAFTER CALLING THIS TOOL: ' +
-          '- The tool returns a PLAN in markdown format (like Cursor\'s plan mode) ' +
-          '- YOU (the AI) must read the plan and execute it step-by-step ' +
-          '- Follow each step in the plan to complete the installation ' +
-          '- Modify the detected files according to the plan\'s instructions ' +
+          '- The tool returns a PLAN in markdown format ' +
+          '- FIRST: Present the plan to the user so they can review it ' +
+          '- THEN: Ask if they want you to execute the plan ' +
+          '- FINALLY: Execute the plan step-by-step if they confirm ' +
+          '- ONLY implement features the user requested - DO NOT add extra features ' +
+          '- Use .md documentation URLs for component implementation patterns ' +
+          '- DO NOT use CLI-generated component files as reference (except auth/user/doc setup) ' +
           '- Replace placeholders with actual API keys provided by user ' +
+          '- AT THE END: Check browser DevTools Console for Velt errors/warnings and use Velt Docs MCP to resolve any issues ' +
+          '\n\nPOST-INSTALLATION SUPPORT: ' +
+          '- For questions, fixes, or issues AFTER installation, use the Velt Docs MCP server to get answers ' +
+          '- Query the Velt Docs MCP for feature customization, troubleshooting, and advanced configuration ' +
+          '- Example query: "How do I customize presence avatars?" or "How to fix authentication errors in Velt?" ' +
+          '\n\nDEV TOOLS & CONSOLE WARNINGS: ' +
+          '- After installation, tell the user to check their browser DevTools console (F12) for Velt warnings ' +
+          '- The Velt SDK logs helpful diagnostic messages about configuration issues, API key problems, etc. ' +
+          '- If users encounter issues, ask them to share console warnings, then query Velt Docs MCP to find solutions ' +
           '\n\nIMPORTANT: ' +
           '- This tool does NOT complete the installation - it prepares and plans it ' +
-          '- YOU must execute the returned plan to finish the installation ' +
+          '- YOU must PRESENT the plan to the user FIRST before executing ' +
           '- The plan includes code examples and detailed instructions ' +
-          '- Follow the plan\'s checklist sequentially',
+          '- Follow the plan\'s checklist sequentially after user confirms',
         inputSchema: {
           type: 'object',
           properties: {
@@ -161,8 +193,8 @@ export async function createServer() {
             },
             commentType: {
               type: 'string',
-              enum: ['freestyle', 'popover'],
-              description: 'Type of comments to install (freestyle or popover) - ASK THE USER',
+              enum: ['freestyle', 'popover', 'page', 'text', 'inline'],
+              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments)',
             },
             headerPosition: {
               type: 'string',
@@ -173,9 +205,9 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'notifications', 'recorder'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder'],
               },
-              description: 'Features to install - For now, only "comments" is fully supported',
+              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder',
             },
             targetArea: {
               type: 'string',
@@ -395,7 +427,7 @@ Configuration will be used to install Velt with freestyle comments.`,
               content: [
                 {
                   type: 'text',
-                  text: `Installation preparation complete! Here's your implementation plan:\n\n${planResult.plan}\n\n---\n\nIMPORTANT: Please follow this plan step-by-step to complete the Velt installation. Each step includes detailed instructions and code examples. Make sure to replace all placeholders (YOUR_VELT_API_KEY, YOUR_VELT_AUTH_TOKEN) with the actual values provided by the user.`,
+                  text: `Installation preparation complete! Here's your implementation plan:\n\n${planResult.plan}\n\n---\n\n🚨 CRITICAL IMPLEMENTATION RULES - READ BEFORE EXECUTING:\n\n**WHAT TO IMPLEMENT:**\n✅ ONLY implement features the user requested\n✅ Use .md documentation URLs for component patterns\n✅ Use CLI-generated: authentication, user setup, document setup\n\n**WHAT NOT TO IMPLEMENT:**\n❌ DO NOT use VeltTools component\n❌ DO NOT use ui-customization folder (unless user asks for customization)\n❌ DO NOT install components user didn't request (e.g., if user wants Comments, don't add Notifications)\n❌ DO NOT use CLI-generated component files as reference for implementation\n\n**IMPLEMENTATION SOURCE:**\n📄 Get component code from: https://docs.velt.dev/[feature]/setup.md\n📄 NOT from CLI-generated files in components/velt/*\n\n---\n\n🎯 NEXT STEPS:\n\n1. **PRESENT THIS PLAN TO THE USER** - Show them the plan above so they can review it\n2. **ASK FOR CONFIRMATION** - Ask: "Would you like me to execute this installation plan step-by-step?"\n3. **EXECUTE THE PLAN** - Once confirmed, follow each step to complete the installation\n4. **CHECK DEV CONSOLE** - After installation, check browser console for Velt errors/warnings\n5. **RESOLVE ERRORS** - If errors found, query Velt Docs MCP for solutions\n\n---\n\nIMPORTANT REMINDERS:\n• Replace all placeholders (YOUR_VELT_API_KEY, YOUR_VELT_AUTH_TOKEN) with actual values\n• ONLY implement what user requested - nothing more\n• Use .md docs for component implementation, NOT CLI files\n• Follow the plan's checklist sequentially\n• ALWAYS check DevTools Console (F12) for Velt errors at the end\n\n---\n\nCOMMON VELT ERRORS TO CHECK FOR:\n• "Please set document id to continue" → Query Velt Docs MCP: "How do I set document ID in Velt?"\n• "Velt API key not found" → Check that YOUR_VELT_API_KEY was replaced\n• "Failed to authenticate user" → Query Velt Docs MCP: "How to fix Velt authentication errors?"\n\n---\n\nAFTER INSTALLATION:\n1. 🔍 CHECK DEV CONSOLE: Open browser DevTools Console (F12) and look for Velt messages\n2. 📚 USE VELT DOCS MCP: Query Velt Docs MCP to resolve any errors or for customization\n3. 🎯 REFERENCE DOCS: All docs at https://docs.velt.dev with .md URLs at https://docs.velt.dev/[feature]/[page].md`,
                 },
               ],
             };

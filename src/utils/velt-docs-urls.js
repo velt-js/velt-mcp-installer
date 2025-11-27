@@ -6,82 +6,102 @@
  */
 
 /**
- * Comment feature documentation URLs
- */
-export const COMMENT_FEATURE_URLS = {
-  freestyle: 'https://docs.velt.dev/async-collaboration/comments/setup/freestyle',
-  popover: 'https://docs.velt.dev/async-collaboration/comments/setup/popover',
-  page: 'https://docs.velt.dev/async-collaboration/comments/setup/page',
-  stream: 'https://docs.velt.dev/async-collaboration/comments/setup/stream',
-  text: 'https://docs.velt.dev/async-collaboration/comments/setup/text',
-  // Note: inline returns 404, might be combined with text mode
-};
-
-/**
  * All Velt feature documentation URLs
  */
 export const VELT_DOCS_URLS = {
   // Getting Started
-  overview: 'https://docs.velt.dev/get-started/overview',
   quickstart: 'https://docs.velt.dev/get-started/quickstart',
-  advanced: 'https://docs.velt.dev/get-started/advanced',
+  keyConcepts: 'https://docs.velt.dev/key-concepts/overview',
 
   // Comments
   comments: {
-    overview: 'https://docs.velt.dev/async-collaboration/comments/overview',
     setup: {
       freestyle: 'https://docs.velt.dev/async-collaboration/comments/setup/freestyle',
       popover: 'https://docs.velt.dev/async-collaboration/comments/setup/popover',
       page: 'https://docs.velt.dev/async-collaboration/comments/setup/page',
-      stream: 'https://docs.velt.dev/async-collaboration/comments/setup/stream',
       text: 'https://docs.velt.dev/async-collaboration/comments/setup/text',
+      inline: 'https://docs.velt.dev/async-collaboration/comments/setup/inline-comments',
+      // Purpose-built library integrations
+      tiptap: 'https://docs.velt.dev/async-collaboration/comments/setup/tiptap',
+      lexical: 'https://docs.velt.dev/async-collaboration/comments/setup/lexical',
+      slate: 'https://docs.velt.dev/async-collaboration/comments/setup/slatejs',
     },
-    customization: 'https://docs.velt.dev/ui-customization/features/async/comments',
+    customizeBehavior: 'https://docs.velt.dev/async-collaboration/comments/customize-behavior',
   },
 
   // Presence
   presence: {
-    overview: 'https://docs.velt.dev/realtime-collaboration/presence/overview',
     setup: 'https://docs.velt.dev/realtime-collaboration/presence/setup',
+    customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/presence/customize-behavior',
   },
 
   // Notifications
   notifications: {
-    overview: 'https://docs.velt.dev/async-collaboration/notifications/overview',
     setup: 'https://docs.velt.dev/async-collaboration/notifications/setup',
+    customizeBehavior: 'https://docs.velt.dev/async-collaboration/notifications/customize-behavior',
   },
 
   // Recorder
   recorder: {
-    overview: 'https://docs.velt.dev/async-collaboration/recorder/overview',
     setup: 'https://docs.velt.dev/async-collaboration/recorder/setup',
+    customizeBehavior: 'https://docs.velt.dev/async-collaboration/recorder/customize-behavior',
   },
 
-  // Authentication
-  auth: {
-    overview: 'https://docs.velt.dev/security/authentication/overview',
-    setup: 'https://docs.velt.dev/security/authentication/setup',
+  // Cursors
+  cursors: {
+    setup: 'https://docs.velt.dev/realtime-collaboration/cursors/setup',
+    customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/cursors/customize-behavior',
   },
+
 };
 
 /**
- * Gets the documentation URL for a specific comment type
+ * Gets the documentation URL for a specific feature or comment type
  *
- * @param {string} commentType - Comment type (freestyle, popover, page, stream, text)
+ * @param {string} feature - Feature name (comments, presence, cursors, notifications, recorder)
+ * @param {string} [subtype] - Optional subtype (for comments: freestyle, popover, page, text, inline, tiptap, lexical, slate)
+ * @param {string} [page='setup'] - Page type (setup, customizeBehavior)
  * @returns {string} Documentation URL
  */
-export function getCommentDocUrl(commentType) {
-  return COMMENT_FEATURE_URLS[commentType] || COMMENT_FEATURE_URLS.freestyle;
+export function getDocUrl(feature, subtype = null, page = 'setup') {
+  const featureConfig = VELT_DOCS_URLS[feature];
+
+  if (!featureConfig) {
+    console.warn(`Unknown feature: ${feature}, using quickstart`);
+    return VELT_DOCS_URLS.quickstart;
+  }
+
+  // If it's a simple string URL, return it
+  if (typeof featureConfig === 'string') {
+    return featureConfig;
+  }
+
+  // Handle comments with subtypes (freestyle, popover, etc.)
+  if (feature === 'comments' && subtype) {
+    if (featureConfig.setup && featureConfig.setup[subtype]) {
+      return featureConfig.setup[subtype];
+    }
+  }
+
+  // Handle page navigation (setup, customizeBehavior)
+  if (featureConfig[page]) {
+    return featureConfig[page];
+  }
+
+  // Fallback to setup
+  return featureConfig.setup || VELT_DOCS_URLS.quickstart;
 }
 
 /**
- * Gets the markdown URL for a specific comment type
+ * Gets the markdown URL for a specific feature or comment type
  *
- * @param {string} commentType - Comment type
+ * @param {string} feature - Feature name
+ * @param {string} [subtype] - Optional subtype (for comments)
+ * @param {string} [page='setup'] - Page type
  * @returns {string} Markdown documentation URL
  */
-export function getCommentDocMarkdownUrl(commentType) {
-  const baseUrl = getCommentDocUrl(commentType);
+export function getDocMarkdownUrl(feature, subtype = null, page = 'setup') {
+  const baseUrl = getDocUrl(feature, subtype, page);
   return `${baseUrl}.md`;
 }
 
@@ -91,13 +111,12 @@ export function getCommentDocMarkdownUrl(commentType) {
  * @returns {string[]} Array of comment type names
  */
 export function getAvailableCommentTypes() {
-  return Object.keys(COMMENT_FEATURE_URLS);
+  return Object.keys(VELT_DOCS_URLS.comments.setup);
 }
 
 export default {
-  COMMENT_FEATURE_URLS,
   VELT_DOCS_URLS,
-  getCommentDocUrl,
-  getCommentDocMarkdownUrl,
+  getDocUrl,
+  getDocMarkdownUrl,
   getAvailableCommentTypes,
 };
