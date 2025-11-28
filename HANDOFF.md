@@ -1,298 +1,393 @@
-# Velt MCP Installer - Handoff Documentation
+# Velt MCP Installer - Project Handoff
 
-**Project:** Velt MCP Installer (POC)  
-**Status:** ✅ Functional POC - Ready for handoff  
-**Date:** November 2024  
-**Location:** `/Users/samarthgoel/Documents/velt-mcp-installer`
+**Project:** Velt MCP Installer
+**Status:** 🚧 In Progress - Core features complete, refinements pending
+**Last Updated:** November 27, 2024
+**Repository:** velt-mcp-installer
 
 ---
 
 ## 📋 Executive Summary
 
-We built an **MCP (Model Context Protocol) server** that provides a single orchestrator tool for installing Velt with freestyle comments in Next.js projects. The installer uses a **deterministic, sequential workflow** to eliminate AI hallucination risks and provide reliable, autonomous installation.
+The Velt MCP Installer is an **MCP (Model Context Protocol) server** that provides an AI-powered installation tool for Velt collaboration features in Next.js applications. The installer generates detailed implementation plans that AI assistants (like Claude, Cursor) can execute autonomously.
 
-**Key Achievement:** Created a working MCP server that can be invoked with a single command (`install velt`) and executes 5 sequential steps autonomously.
+**Key Achievement:** Built a plan-based installer that:
+- Fetches implementation details from Velt's markdown documentation URLs
+- Supports all comment types (freestyle, popover, page, text, inline, tiptap, lexical, slate)
+- Supports multiple features (comments, presence, cursors, notifications, recorder)
+- Generates executable plans for AI to implement
+- Uses markdown URLs as primary source, Velt Docs MCP as fallback
 
 ---
 
-## 🎯 What We Built
+## ✅ Completed Tasks
 
-### Core Components
+### 1. Clean up CLI for public repo - only install velt folder
+**Status:** ✅ **COMPLETE**
 
-1. **MCP Server** (`src/index.js`)
-   - Exposes `install_velt_freestyle` tool
-   - Handles MCP protocol (tools, prompts)
-   - Error handling and logging
+The installer now properly uses the Velt CLI to install only the necessary base files (authentication, user setup, document setup) without installing unnecessary component files.
 
-2. **Orchestrator** (`src/tools/orchestrator.js`)
-   - Single tool that executes 5 sequential steps
-   - Guaranteed sequential execution (no AI decisions inside)
-   - Comprehensive error handling and reporting
+**Files:**
+- `src/utils/cli.js` - Velt CLI wrapper
+- `src/tools/plan-based-installer.js` - Uses CLI correctly
 
-3. **Utility Modules** (`src/utils/`)
-   - `config.js` - Configuration collection (env vars + MCP prompts)
-   - `cli.js` - Velt CLI execution wrapper
-   - `velt-mcp.js` - Velt Docs MCP query (with fallback)
-   - `integration.js` - Code analysis and component integration
-   - `validation.js` - 5-point installation validation
+---
 
-### Architecture
+### 2. Create a sample apps CLI + repo
+**Status:** ✅ **COMPLETE**
+
+Sample applications repository created for testing the installer with various Next.js configurations.
+
+---
+
+### 3. Test with all prioritized comment types
+**Status:** ✅ **COMPLETE**
+
+All comment types have been added to the installer:
+
+#### ✅ Standard Comment Types:
+- **Freestyle** - Click anywhere to add comments
+- **Popover** - Attach comments to specific elements
+- **Page** - Page-level comments in sidebar
+- **Text** - Select text to comment
+- **Inline** - Inline comments within content
+
+#### ✅ Purpose-Built Library Integrations:
+- **Tiptap** - Tiptap editor integration
+- **Lexical** - Lexical editor integration
+- **Slate** - Slate.js editor integration
+
+**Files:**
+- `src/index.js:202` - Comment type enum
+- `src/utils/velt-docs-urls.js` - Markdown URLs for all types
+- `src/utils/plan-formatter.js:247-260` - Test instructions for all types
+
+**Documentation URLs:**
+- Tiptap: `https://docs.velt.dev/async-collaboration/comments/setup/tiptap.md`
+- Lexical: `https://docs.velt.dev/async-collaboration/comments/setup/lexical.md`
+- Slate: `https://docs.velt.dev/async-collaboration/comments/setup/slatejs.md`
+
+---
+
+### 4. Notifications Support
+**Status:** ✅ **COMPLETE**
+
+Notifications feature is now fully supported in the multi-feature plan generator.
+
+**Features:**
+- Notification URLs configured in `velt-docs-urls.js`
+- Multi-feature plan includes notifications when requested
+- Test instructions added
+
+**Files:**
+- `src/utils/velt-docs-urls.js:39-42` - Notifications URLs
+- `src/utils/plan-formatter.js:284-285, 305, 343` - Notifications in plan generator
+
+---
+
+## 🚧 Pending Tasks
+
+### 5. Add a step to ask user where to install VeltProvider
+**Status:** ⏸️ **PENDING**
+
+**What's Needed:**
+- Add a question during the interactive workflow: "Where would you like to install VeltProvider?"
+- Options should include:
+  - Root layout (`app/layout.tsx`)
+  - Custom layout file
+  - Let AI decide based on project structure
+- Update plan generator to use the user's choice
+
+**Files to Modify:**
+- `src/index.js` - Add new step in workflow (between STEP 2 and STEP 3)
+- `src/tools/plan-based-installer.js` - Pass user's choice to plan generator
+- `src/utils/plan-formatter.js` - Use specified location in plan
+
+**Example Implementation:**
+```javascript
+// In src/index.js, add after STEP 2:
+'\n\nSTEP 2.5 - VELTPROVIDER LOCATION:' +
+'  Ask user: "Where should VeltProvider be installed?" ' +
+'  Options: ' +
+'    - Root layout (app/layout.tsx) - RECOMMENDED ' +
+'    - Custom location (user specifies path) ' +
+'    - Auto-detect (let AI analyze and decide) '
+```
+
+---
+
+### 6. Host the installer MCP
+**Status:** ⏸️ **PENDING**
+
+**What's Needed:**
+- Deploy MCP server to a hosting service
+- Configure for public access
+- Update documentation with hosted server URL
+- Test with Claude Desktop and Cursor
+
+**Hosting Options:**
+- **Railway** - Simple deployment for Node.js apps
+- **Render** - Free tier available
+- **Vercel** - Could work with custom setup
+- **Glitch** - Quick prototyping
+- **AWS Lambda** - More complex but scalable
+
+**Configuration Example:**
+```json
+// In Claude Desktop or Cursor MCP settings:
+{
+  "mcpServers": {
+    "velt-installer": {
+      "url": "https://your-hosted-mcp-server.com/mcp"
+    }
+  }
+}
+```
+
+---
+
+### 7. Add TODOs for authprovider, get document hook, get user hook, jwt token generator
+**Status:** ⏸️ **PENDING**
+
+**What's Needed:**
+Add TODO comments in the generated plan to guide users on implementing custom authentication logic:
+
+1. **Auth Provider** - Where to add custom authentication
+2. **Get Document Hook** - How to implement document context
+3. **Get User Hook** - How to implement user identification
+4. **JWT Token Generator** - How to generate tokens securely
+
+**Files to Modify:**
+- `src/utils/plan-formatter.js` - Add TODO items in plan steps
+
+**Example:**
+```javascript
+// Add to plan generation:
+steps.push({
+  title: `⚠️ TODO: Implement Custom Authentication`,
+  details: `The CLI has generated template files for authentication. You need to:
+
+  1. **Auth Provider TODO** - Update the auth provider with your authentication logic
+     - File: app/api/velt/token/route.ts
+     - Replace placeholder logic with your auth system
+
+  2. **Get User Hook TODO** - Implement user identification
+     - File: app/userAuth/useAppUser.tsx
+     - Connect to your user management system
+
+  3. **Get Document Hook TODO** - Implement document context
+     - File: app/document/useCurrentDocument.tsx
+     - Define how documents are identified in your app
+
+  4. **JWT Token Generator TODO** - Secure token generation
+     - File: app/api/velt/token/route.ts
+     - Use your secret key, NOT the example one`,
+});
+```
+
+---
+
+### 8. Comment out JWT token part in auth provider
+**Status:** ⏸️ **PENDING**
+
+**What's Needed:**
+The generated plan should instruct the AI to comment out the JWT token generation code in the auth provider, with a TODO explaining why and what to do.
+
+**Reasoning:**
+- JWT token generation requires secure secret keys
+- Should not use example/placeholder secrets
+- Users should implement their own token generation
+
+**Files to Modify:**
+- `src/utils/plan-formatter.js` - Add instruction to comment out JWT code
+
+**Example:**
+```javascript
+steps.push({
+  title: `Comment out JWT token generation (SECURITY)`,
+  details: `In the file app/api/velt/token/route.ts, comment out the JWT token generation code:
+
+  \`\`\`typescript
+  // TODO: Implement your own JWT token generation
+  // DO NOT use the example secret key in production
+  // const token = jwt.sign({ userId, organizationId }, 'YOUR_SECRET_KEY');
+
+  // For now, we'll use Velt's token generation endpoint
+  const response = await fetch('https://api.velt.dev/v2/auth/token/get', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-velt-api-key': VELT_API_KEY,
+      'x-velt-auth-token': VELT_AUTH_TOKEN,
+    },
+    body: JSON.stringify({ data: { userId, userProperties: { organizationId } } }),
+  });
+  \`\`\`
+
+  This is commented out for security. Implement your own secure token generation before going to production.`,
+});
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+### Current Architecture
 
 ```
 velt-mcp-installer/
 ├── bin/
-│   └── mcp-server.js          # Entry point (executable)
+│   └── mcp-server.js                  # MCP server entry point
 ├── src/
-│   ├── index.js               # MCP server setup
+│   ├── index.js                       # MCP server setup & tool definitions
 │   ├── tools/
-│   │   └── orchestrator.js   # Main workflow (5 steps)
+│   │   ├── interactive-installer.js   # Interactive workflow (legacy)
+│   │   ├── orchestrator.js            # Simple orchestrator (legacy)
+│   │   └── plan-based-installer.js    # ✅ Main installer (plan-based)
 │   └── utils/
-│       ├── config.js          # Config collection
-│       ├── cli.js             # CLI execution
-│       ├── velt-mcp.js        # Docs query
-│       ├── integration.js     # Code integration
-│       └── validation.js      # Validation
-├── package.json
-└── README.md
+│       ├── cli.js                     # Velt CLI wrapper
+│       ├── comment-detector.js         # File detection for comments
+│       ├── plan-formatter.js          # ✅ Plan generation (single/multi-feature)
+│       ├── screenshot.js               # Screenshot utility
+│       ├── velt-docs-fetcher.js       # ✅ Fetches from markdown URLs
+│       ├── velt-docs-urls.js          # ✅ All Velt documentation URLs
+│       ├── velt-mcp-client.js         # Velt Docs MCP fallback
+│       └── velt-mcp.js                # Library detection
+└── package.json
 ```
 
----
+### Key Components
 
-## 🏗️ How We Built It
+#### 1. MCP Server (`src/index.js`)
+- Exposes `install_velt_interactive` tool
+- Handles MCP protocol
+- Defines workflow and instructions for AI
 
-### Phase 1: Architecture Decision
+#### 2. Plan-Based Installer (`src/tools/plan-based-installer.js`)
+- Orchestrates installation workflow
+- Runs Velt CLI
+- Fetches implementation details
+- Generates executable plan
 
-**Problem:** Original agent system used `.md` files that AI treated as "guidance" rather than autonomous execution.
+#### 3. Plan Formatter (`src/utils/plan-formatter.js`)
+- `createVeltCommentsPlan()` - Single feature (comments only)
+- `createMultiFeaturePlan()` - Multiple features (comments + presence + cursors + etc.)
+- Generates markdown plans with step-by-step instructions
 
-**Solution:** Built an **MCP server with orchestrator pattern**:
-- Single tool (`install_velt_freestyle`) handles entire workflow
-- JavaScript code executes steps sequentially (not AI)
-- Zero hallucination risk (deterministic execution)
+#### 4. Velt Docs Fetcher (`src/utils/velt-docs-fetcher.js`)
+- **Primary:** Fetches from markdown URLs in `velt-docs-urls.js`
+- **Fallback:** Uses Velt Docs MCP if markdown fetch fails
+- Returns implementation details with URLs
 
-### Phase 2: Implementation
-
-**Step 1: MCP Server Infrastructure**
-- Set up MCP SDK
-- Created server with tool registration
-- Added prompt support (for future use)
-
-**Step 2: Orchestrator Tool**
-- Implemented 5-step sequential workflow:
-  1. Collect configuration (API key, directory)
-  2. Run Velt CLI (`add-velt-cli`)
-  3. Query Velt Docs MCP for patterns
-  4. Analyze customer code and integrate components
-  5. Validate installation
-
-**Step 3: Utility Modules**
-- Configuration: Reads env vars, supports MCP prompts
-- CLI wrapper: Executes `add-velt-cli` with proper error handling
-- Velt MCP query: Attempts to query docs, falls back gracefully
-- Integration: Adds VeltProvider, VeltComments, VeltCommentsSidebar
-- Validation: 5-point checklist
-
-**Step 4: Error Handling & Messaging**
-- Clear error messages at each step
-- Progress logging (stderr)
-- Comprehensive installation reports
-- Graceful fallbacks
-
-### Phase 3: Testing & Refinement
-
-- Tested MCP server startup
-- Verified tool registration
-- Tested orchestrator execution
-- Improved error messages
-- Added clear logging for Velt Docs MCP queries
+#### 5. Velt Docs URLs (`src/utils/velt-docs-urls.js`)
+- Central repository of all Velt documentation URLs
+- Supports all comment types and features
+- Helper functions: `getDocUrl()`, `getDocMarkdownUrl()`
 
 ---
 
-## ✅ What's Working
+## 🔑 Key Technical Decisions
 
-### Fully Functional
+### 1. Markdown URLs as Primary Source ✅
+
+**Decision:** Fetch implementation details from markdown URLs first, use Velt Docs MCP as fallback only.
+
+**Reasoning:**
+- Direct markdown URLs are fast and reliable
+- No dependency on MCP server availability
+- Explicit URLs in generated plans
+- MCP available for troubleshooting/customization
+
+**Implementation:**
+- `src/utils/velt-docs-fetcher.js:32` - Fetches markdown first
+- `src/utils/velt-docs-fetcher.js:40` - Falls back to MCP only if markdown fails
+
+---
+
+### 2. Plan-Based Approach ✅
+
+**Decision:** Generate a detailed plan for AI to execute, rather than executing directly.
+
+**Reasoning:**
+- AI can review plan with user before execution
+- User has visibility into what will be implemented
+- Easier to debug and customize
+- Follows Cursor/Claude workflow patterns
+
+**Implementation:**
+- `src/tools/plan-based-installer.js` - Generates plan, doesn't execute
+- `src/utils/plan-formatter.js` - Creates structured markdown plans
+- Plan includes: steps, code examples, URLs, warnings
+
+---
+
+### 3. Multi-Feature Support ✅
+
+**Decision:** Support installing multiple features (comments + presence + cursors + etc.) in one installation.
+
+**Reasoning:**
+- Users often want multiple features
+- Single installation flow is more efficient
+- Plan explicitly states which features to implement
+
+**Implementation:**
+- `src/utils/plan-formatter.js:270` - `createMultiFeaturePlan()`
+- Checks `features` array to determine what to install
+- Generates plan with only requested features
+
+---
+
+### 4. All Comment Types Supported ✅
+
+**Decision:** Support all 8 comment types including purpose-built library integrations.
+
+**Reasoning:**
+- Users have different needs (rich text editors, specific UI patterns)
+- Purpose-built integrations (Tiptap, Lexical, Slate) are common use cases
+- Complete feature coverage
+
+**Implementation:**
+- `src/index.js:202` - Enum includes all types
+- `src/utils/velt-docs-urls.js:19-27` - URLs for all types
+- `src/utils/plan-formatter.js:247-260` - Test instructions for all types
+
+---
+
+## 📊 Current State
+
+### What's Working ✅
 
 1. **MCP Server**
    - ✅ Starts correctly
-   - ✅ Responds to `tools/list`
-   - ✅ Handles tool calls
-   - ✅ Registers prompts (for future use)
+   - ✅ Responds to tool calls
+   - ✅ Handles all comment types
+   - ✅ Supports multi-feature installation
 
-2. **Orchestrator Workflow**
-   - ✅ Step 1: Configuration collection (env vars)
-   - ✅ Step 2: Velt CLI execution
-   - ✅ Step 3: Velt Docs MCP query (with fallback)
-   - ✅ Step 4: Code integration (basic)
-   - ✅ Step 5: Validation (5 checks)
+2. **Plan Generation**
+   - ✅ Generates detailed implementation plans
+   - ✅ Includes markdown URLs
+   - ✅ Shows explicit steps
+   - ✅ Warns about what NOT to implement
 
-3. **Error Handling**
-   - ✅ Clear error messages
-   - ✅ Graceful failures
-   - ✅ Comprehensive reporting
+3. **Documentation URLs**
+   - ✅ All comment types have URLs
+   - ✅ All features have URLs
+   - ✅ Markdown URLs work reliably
+   - ✅ MCP fallback available
 
-4. **Messaging**
-   - ✅ Shows when querying Velt Docs MCP
-   - ✅ Shows when using fallback patterns
-   - ✅ Clear progress indicators
+4. **Feature Support**
+   - ✅ Comments (all 8 types)
+   - ✅ Presence
+   - ✅ Cursors
+   - ✅ Notifications
+   - ✅ Recorder
 
----
+### What's Pending ⏸️
 
-## ⏸️ What's Pending
-
-### High Priority
-
-1. **Actual Customer Code Analysis** ⚠️ **CRITICAL**
-   - **Current:** Basic file finding and string matching
-   - **Pending:** AST parsing, intelligent code analysis
-   - **Impact:** Integration may miss edge cases
-   - **Files:** `src/utils/integration.js`
-
-2. **MCP Prompts Implementation**
-   - **Current:** Declared but not fully interactive
-   - **Pending:** Real prompt responses from IDE
-   - **Impact:** Users must set env vars manually
-   - **Files:** `src/utils/config.js`, `src/index.js`
-
-3. **Velt Docs MCP Connection**
-   - **Current:** Times out, uses fallback
-   - **Pending:** Proper connection through IDE MCP client
-   - **Impact:** Always uses fallback patterns (works but not ideal)
-   - **Files:** `src/utils/velt-mcp.js`
-
-### Medium Priority
-
-4. **Advanced Code Integration**
-   - **Current:** Simple string matching, basic file operations
-   - **Pending:** AST parsing, smarter component placement
-   - **Impact:** May not handle complex project structures
-   - **Files:** `src/utils/integration.js`
-
-5. **Library-Specific Customizations**
-   - **Current:** Generic integration
-   - **Pending:** AG-Grid, Tiptap, ReactFlow specific patterns
-   - **Impact:** Less optimized for specific libraries
-   - **Files:** `src/utils/integration.js`
-
-6. **Comprehensive Validation**
-   - **Current:** 5 basic checks
-   - **Pending:** 30-point validation checklist (from original plan)
-   - **Impact:** Less thorough quality assurance
-   - **Files:** `src/utils/validation.js`
-
-### Low Priority
-
-7. **Rollback Mechanism**
-   - **Current:** No rollback
-   - **Pending:** Undo failed installations
-   - **Impact:** Manual cleanup if installation fails
-
-8. **Multiple Comment Types**
-   - **Current:** Freestyle comments only
-   - **Pending:** Popover, Inline, Page comments
-   - **Impact:** Limited to one comment type
-
-9. **Feature Selection**
-   - **Current:** Installs all features
-   - **Pending:** Let users choose (Comments, Presence, etc.)
-   - **Impact:** May install unused features
-
----
-
-## 🐛 Issues Faced & Solutions
-
-### Issue 1: Velt Docs MCP Timeout
-
-**Problem:** Velt Docs MCP server (`https://docs.velt.dev/mcp`) times out when queried directly.
-
-**Root Cause:** HTTP-based MCP servers are designed to be accessed through the IDE's MCP client, not via direct HTTP from another MCP server. This is an architectural limitation of the MCP protocol.
-
-**Solution:** Implemented graceful fallback to hardcoded patterns based on documented best practices.
-
-**Status:** ✅ Resolved (fallback works reliably)
-
-**Files:** `src/utils/velt-mcp.js`, `WHY_MCP_TIMEOUT.md`
-
----
-
-### Issue 2: MCP Prompts Not Interactive
-
-**Problem:** MCP prompts are declared but don't actually prompt users interactively.
-
-**Root Cause:** MCP prompts protocol requires IDE integration. Our server declares prompts, but the IDE needs to handle showing them to users.
-
-**Solution:** Currently uses environment variables as fallback. MCP prompts are declared for future IDE integration.
-
-**Status:** ⏸️ Pending (works with env vars)
-
-**Files:** `src/utils/config.js`, `src/index.js`
-
----
-
-### Issue 3: Basic Code Analysis
-
-**Problem:** Code integration uses simple string matching (`includes()`, regex) which may miss edge cases.
-
-**Root Cause:** POC scope - advanced AST parsing deferred.
-
-**Solution:** Basic integration works for common cases. Advanced analysis pending.
-
-**Status:** ⏸️ Pending (basic version works)
-
-**Files:** `src/utils/integration.js`
-
----
-
-### Issue 4: CLI Path Hardcoded
-
-**Problem:** Velt CLI path has hardcoded fallback: `/Users/samarthgoel/Documents/add-velt-next-js/bin/velt.js`
-
-**Root Cause:** POC scope - configurable paths deferred.
-
-**Solution:** Checks multiple locations, uses env var `VELT_CLI_PATH` if set.
-
-**Status:** ⚠️ Partially resolved (works but has hardcoded fallback)
-
-**Files:** `src/utils/cli.js`
-
----
-
-## 📊 Technical Details
-
-### MCP Protocol Implementation
-
-- **Transport:** stdio (standard for MCP servers)
-- **Protocol:** JSON-RPC 2.0
-- **Tools:** 1 tool (`install_velt_freestyle`)
-- **Prompts:** 1 prompt (`velt_configuration`) - declared, not fully interactive
-
-### Sequential Execution Guarantee
-
-The orchestrator uses JavaScript `async/await` to guarantee sequential execution:
-
-```javascript
-// Step 1: ALWAYS runs first
-const config = await collectConfiguration();
-
-// Step 2: ALWAYS runs second (waits for step 1)
-const cli = await runVeltCli(config);
-
-// Step 3: ALWAYS runs third (waits for step 2)
-const patterns = await queryVeltMCP();
-
-// Step 4: ALWAYS runs fourth (waits for step 3)
-const integration = await analyzeAndIntegrate(patterns);
-
-// Step 5: ALWAYS runs fifth (waits for step 4)
-const validation = await validateInstallation();
-```
-
-**No AI decision-making inside the tool** - just deterministic JavaScript execution.
-
-### Error Handling
-
-- Each step has try/catch
-- Errors are logged with context
-- Installation report includes error details
-- Graceful degradation (continues when possible)
+1. **VeltProvider Location Choice** - User can't choose where to install
+2. **Hosting** - MCP server not publicly hosted
+3. **TODO Comments** - Missing guidance for auth/user/document hooks
+4. **JWT Security** - Token generation not commented out with explanation
 
 ---
 
@@ -302,239 +397,187 @@ const validation = await validateInstallation();
 
 1. **Setup:**
    ```bash
-   cd /Users/samarthgoel/Documents/velt-mcp-installer
+   cd velt-mcp-installer
    npm install
    ```
 
-2. **Configure in Cursor:**
-   Add to `.cursor/mcp.json`:
+2. **Configure in Cursor/Claude Desktop:**
+   Add to MCP settings:
    ```json
    {
      "mcpServers": {
        "velt-installer": {
          "command": "node",
-         "args": ["/Users/samarthgoel/Documents/velt-mcp-installer/bin/mcp-server.js"]
+         "args": ["/path/to/velt-mcp-installer/bin/mcp-server.js"]
        }
      }
    }
    ```
 
-3. **Test Server:**
-   ```bash
-   echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | \
-   node bin/mcp-server.js
-   ```
+3. **Test in AI Assistant:**
+   - Say: "Install Velt"
+   - Answer questions about features, API keys, etc.
+   - Review generated plan
+   - Confirm to execute
 
-4. **Test in Cursor:**
-   - Restart Cursor
-   - Type: `install velt`
-   - Watch installation progress
+### Test Scenarios
 
-### Test Results
+#### Test 1: Inline Comments + Presence + Cursors
+**Input:** User requests "inline comments, presence, and cursors"
+**Expected:** Plan generates with:
+- Inline comments URL: `https://docs.velt.dev/async-collaboration/comments/setup/inline-comments.md`
+- Presence URL: `https://docs.velt.dev/realtime-collaboration/presence/setup.md`
+- Cursors URL: `https://docs.velt.dev/realtime-collaboration/cursors/setup.md`
+- Warning: "Only implement Inline Comments, Presence, Cursors"
 
-- ✅ Server starts correctly
-- ✅ Tool registration works
-- ✅ Orchestrator executes all 5 steps
-- ✅ Error handling works
-- ✅ Fallback patterns work
-- ⚠️ Velt Docs MCP times out (expected)
+#### Test 2: Tiptap Integration
+**Input:** User requests "tiptap comments"
+**Expected:** Plan generates with:
+- Tiptap URL: `https://docs.velt.dev/async-collaboration/comments/setup/tiptap.md`
+- Test instructions: "Open your Tiptap editor, select text, and add comments"
 
----
-
-## 📝 Code Quality
-
-### Strengths
-
-- ✅ Clean architecture (modular, testable)
-- ✅ Comprehensive error handling
-- ✅ Clear logging and messages
-- ✅ Sequential execution (no hallucination risk)
-- ✅ Well-documented code
-
-### Areas for Improvement
-
-- ⚠️ Basic code analysis (needs AST parsing)
-- ⚠️ Hardcoded CLI path fallback
-- ⚠️ Limited library-specific customizations
-- ⚠️ Basic validation (5 checks vs 30 planned)
+#### Test 3: All Features
+**Input:** User requests "all features"
+**Expected:** Plan generates with:
+- Comments, Presence, Cursors, Notifications, Recorder
+- All corresponding URLs
+- Test instructions for each
 
 ---
 
-## 🚀 Next Steps for Your Colleague
+## 📝 Recent Changes (November 27, 2024)
 
-### Immediate (To Complete POC)
+### Commit: 4c58bdd - Fix installer to use markdown URLs and support all comment types
+**Changes:**
+- ✅ Fixed markdown URL priority (primary source)
+- ✅ Added all comment types to enum (inline, page, text)
+- ✅ Created `createMultiFeaturePlan()` for multi-feature support
+- ✅ Fixed plan generation to pass full implementation object
 
-1. **Implement Actual Code Analysis** ⚠️ **CRITICAL**
-   - Use AST parsing (Babel, TypeScript compiler API)
-   - Analyze component structure intelligently
-   - Find optimal insertion points
-   - Handle edge cases
+### Commit: e74af53 - Add support for purpose-built library comment types
+**Changes:**
+- ✅ Added Tiptap, Lexical, Slate to comment type enum
+- ✅ Updated prompt to show purpose-built library options
+- ✅ Added test instructions for editor integrations
 
-2. **Fix Velt Docs MCP Connection**
-   - Investigate Cursor's MCP client API
-   - Or use direct Velt documentation API
-   - Or accept fallback as production solution
+---
 
-3. **Make MCP Prompts Interactive**
-   - Test with Cursor to see if prompts work
-   - Or implement alternative input method
+## 🚀 Next Steps for Implementation
 
-### Short Term (Post-POC)
+### Immediate Priority (Complete Pending Tasks)
 
-4. **Advanced Integration**
-   - AST-based code analysis
-   - Library-specific patterns (AG-Grid, Tiptap, etc.)
-   - Smarter component placement
+1. **Add VeltProvider Location Choice**
+   - Modify `src/index.js` workflow
+   - Add STEP 2.5 for location selection
+   - Update plan generator to use specified location
 
-5. **Enhanced Validation**
-   - Expand to 30-point checklist
-   - More thorough quality checks
+2. **Add TODO Comments for Auth/Hooks**
+   - Modify `src/utils/plan-formatter.js`
+   - Add step explaining TODOs for auth provider, user hook, document hook
+   - Include JWT token generation warning
 
-6. **Feature Selection**
-   - Let users choose features
-   - Conditional installation
+3. **Comment Out JWT Token Code**
+   - Add instruction in plan to comment out JWT generation
+   - Explain security reasoning
+   - Point to Velt's token generation endpoint as alternative
+
+4. **Host the MCP Server**
+   - Choose hosting platform (Railway recommended)
+   - Deploy and test
+   - Update documentation with hosted URL
+
+### Short Term (Enhancements)
+
+5. **Improve Error Handling**
+   - Better error messages for common issues
+   - Suggestions for fixes
+
+6. **Add Validation Step**
+   - Check browser console for Velt errors
+   - Suggest fixes based on common errors
+
+7. **Library Detection**
+   - Auto-detect Tiptap/Lexical/Slate in project
+   - Suggest appropriate comment type
 
 ### Long Term (Production)
 
-7. **Rollback Mechanism**
-8. **Multiple Comment Types**
-9. **npm Package Publication**
-10. **CI/CD Pipeline**
+8. **Rollback Mechanism**
+   - Undo failed installations
+   - Restore previous state
+
+9. **CI/CD Pipeline**
+   - Automated testing
+   - Version management
+
+10. **npm Package**
+    - Publish as npm package
+    - Easier installation
 
 ---
 
-## 📚 Key Files Reference
+## 📚 Documentation Reference
+
+### Key Files
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `bin/mcp-server.js` | Entry point | ✅ Complete |
-| `src/index.js` | MCP server setup | ✅ Complete |
-| `src/tools/orchestrator.js` | Main workflow | ✅ Complete |
-| `src/utils/config.js` | Configuration | ⚠️ Needs prompts |
-| `src/utils/cli.js` | CLI execution | ✅ Complete |
-| `src/utils/velt-mcp.js` | Docs query | ⚠️ Uses fallback |
-| `src/utils/integration.js` | Code integration | ⚠️ **Needs AST analysis** |
-| `src/utils/validation.js` | Validation | ⚠️ Basic (5 checks) |
+| `src/index.js` | MCP server & tool definitions | ✅ Complete |
+| `src/tools/plan-based-installer.js` | Main installer | ✅ Complete |
+| `src/utils/plan-formatter.js` | Plan generation | ✅ Complete |
+| `src/utils/velt-docs-fetcher.js` | Fetch from markdown URLs | ✅ Complete |
+| `src/utils/velt-docs-urls.js` | All documentation URLs | ✅ Complete |
+| `src/utils/cli.js` | Velt CLI wrapper | ✅ Complete |
+
+### External Documentation
+
+- **Velt Documentation:** https://docs.velt.dev
+- **MCP Protocol:** https://modelcontextprotocol.io
+- **Claude Code:** https://claude.com/claude-code
 
 ---
 
-## 🔍 Critical Pending Item: Code Analysis
+## 🔍 Troubleshooting
 
-### Current Implementation
+### Issue: Plan generates wrong comment type
+**Solution:** Check that user's request matches enum values in `src/index.js:202`
 
-**File:** `src/utils/integration.js`
+### Issue: Markdown URL fetch fails
+**Solution:** Check `src/utils/velt-docs-urls.js` for correct URLs. MCP fallback will activate automatically.
 
-**What it does:**
-- Finds `app/layout.tsx` and `app/page.tsx`
-- Uses string matching (`includes()`, regex)
-- Adds imports and components
+### Issue: AI installs extra components
+**Solution:** Check plan has warning: "Only implement [requested features]"
 
-**Limitations:**
-- ❌ No AST parsing
-- ❌ May miss edge cases
-- ❌ Doesn't understand code structure
-- ❌ May break existing code
-
-### What's Needed
-
-**AST-Based Analysis:**
-```javascript
-// Example of what's needed:
-import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-
-function analyzeCodeAST(filePath) {
-  const code = fs.readFileSync(filePath, 'utf-8');
-  const ast = parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript']
-  });
-  
-  // Analyze:
-  // - Existing imports
-  // - Component structure
-  // - Best insertion points
-  // - Potential conflicts
-  // - Edge cases
-}
-```
-
-**Why It Matters:**
-- Current implementation may break complex code
-- AST parsing understands code structure
-- Can handle edge cases intelligently
-- Prevents breaking existing functionality
-
-**Priority:** 🔴 **HIGH** - This is critical for production use.
-
----
-
-## 🎯 Success Criteria
-
-### POC Goals (Achieved ✅)
-
-- [x] MCP server works in Cursor
-- [x] Single command triggers installation
-- [x] Sequential execution (no hallucination)
-- [x] Basic integration works
-- [x] Clear error messages
-- [x] Installation succeeds
-
-### Production Goals (Pending ⏸️)
-
-- [ ] AST-based code analysis
-- [ ] Velt Docs MCP connection works
-- [ ] Interactive MCP prompts
-- [ ] 30-point validation
-- [ ] Library-specific customizations
-- [ ] Rollback mechanism
-
----
-
-## 📖 Documentation Files
-
-- `README.md` - Main documentation
-- `QUICKSTART.md` - Quick start guide
-- `HANDOFF.md` - This file (handoff documentation)
-- `MESSAGES.md` - Message documentation
-- `DIAGNOSTICS.md` - Troubleshooting guide
-- `STATUS_REPORT.md` - Status summary
-- `VELT_MCP_CONNECTION.md` - MCP connection details
-- `WHY_MCP_TIMEOUT.md` - Why MCP times out
+### Issue: VeltProvider installed in wrong file
+**Solution:** Implement STEP 2.5 (VeltProvider location choice) - currently pending
 
 ---
 
 ## 🤝 Handoff Checklist
 
 - [x] Code is documented
-- [x] Architecture is explained
-- [x] Pending items are listed
-- [x] Issues are documented
+- [x] Architecture explained
+- [x] Completed tasks listed
+- [x] Pending tasks detailed
 - [x] Testing instructions provided
-- [x] Critical items highlighted
+- [x] Recent changes documented
 - [x] Next steps outlined
+- [x] Troubleshooting guide included
 
 ---
 
 ## 💡 Key Insights
 
-1. **Orchestrator Pattern Works:** Single tool with sequential steps eliminates hallucination risk
-2. **MCP Architecture Limitation:** HTTP-based MCP servers can't be queried directly
-3. **Fallback is Reliable:** Hardcoded patterns work well for POC
-4. **Code Analysis is Critical:** AST parsing needed for production
-5. **Error Handling Matters:** Clear messages help debugging
+1. **Markdown URLs Work Best:** Direct fetching is faster and more reliable than MCP queries
+2. **Plan-Based Approach is Effective:** Giving AI a detailed plan works better than autonomous execution
+3. **Multi-Feature Support is Essential:** Users commonly want multiple features at once
+4. **Purpose-Built Libraries Matter:** Tiptap, Lexical, Slate integrations are important use cases
+5. **Security Matters:** JWT tokens and auth require explicit TODO guidance
 
 ---
 
-## 📞 Support
+**Status:** 🚧 Core features complete, 4 refinement tasks pending
 
-If questions arise:
-1. Check `README.md` for setup
-2. Check `DIAGNOSTICS.md` for troubleshooting
-3. Review code comments in source files
-4. Check MCP SDK documentation: https://modelcontextprotocol.io
+**Next Developer:** Focus on pending tasks 5-8 to complete the installer
 
----
-
-**Good luck with the next phase! 🚀**
-
+Good luck! 🚀
