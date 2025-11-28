@@ -120,12 +120,21 @@ export async function createServer() {
           '\n\nSTEP 2 - SELECT FEATURES:' +
           '  Ask user: "What features do you want to install?" ' +
           '  Show ALL options: ' +
-          '    📝 Comments (Freestyle, Popover, Page, Text, Inline) ' +
+          '    📝 Comments - Choose type:' +
+          '      • Freestyle (click anywhere on page)' +
+          '      • Popover (attach to specific elements)' +
+          '      • Page (page-level comments)' +
+          '      • Text (select text to comment)' +
+          '      • Inline (inline comments in content)' +
+          '      • Tiptap (for Tiptap editor integration)' +
+          '      • Lexical (for Lexical editor integration)' +
+          '      • Slate (for SlateJS editor integration)' +
           '    👥 Presence - show live users with avatars ' +
           '    🖱️ Cursors - real-time cursor tracking ' +
           '    🔔 Notifications - notification center ' +
           '    🎥 Recorder - screen/audio recording ' +
           '  User can choose ANY combination ' +
+          '  NOTE: If user mentions Tiptap, Lexical, or Slate, use the corresponding comment type ' +
           '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
           '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
           '  This is REQUIRED - do not proceed without it ' +
@@ -193,8 +202,8 @@ export async function createServer() {
             },
             commentType: {
               type: 'string',
-              enum: ['freestyle', 'popover', 'page', 'text', 'inline'],
-              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments)',
+              enum: ['freestyle', 'popover', 'page', 'text', 'inline', 'tiptap', 'lexical', 'slate'],
+              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments), tiptap (Tiptap editor integration), lexical (Lexical editor integration), slate (SlateJS editor integration)',
             },
             headerPosition: {
               type: 'string',

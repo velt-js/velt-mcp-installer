@@ -251,6 +251,10 @@ function getTestInstructions(commentType) {
     page: 'Open the Comments Sidebar and add a page-level comment at the bottom.',
     stream: 'Select text to see comments appear in the stream column on the right.',
     text: 'Highlight any text to see the Comment Tool button appear, then click it to add a comment.',
+    inline: 'Navigate to content with inline comments enabled and try adding a comment inline.',
+    tiptap: 'Open your Tiptap editor, select text or place cursor, and add a comment. Verify comments appear inline in the editor.',
+    lexical: 'Open your Lexical editor, select text or place cursor, and add a comment. Verify comments appear inline in the editor.',
+    slate: 'Open your SlateJS editor, select text or place cursor, and add a comment. Verify comments appear inline in the editor.',
   };
   return instructions[commentType] || 'Test adding comments in your application.';
 }
