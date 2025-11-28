@@ -120,21 +120,18 @@ export async function createServer() {
           '\n\nSTEP 2 - SELECT FEATURES:' +
           '  Ask user: "What features do you want to install?" ' +
           '  Show ALL options: ' +
-          '    📝 Comments - Choose type:' +
-          '      • Freestyle (click anywhere on page)' +
-          '      • Popover (attach to specific elements)' +
-          '      • Page (page-level comments)' +
-          '      • Text (select text to comment)' +
-          '      • Inline (inline comments in content)' +
-          '      • Tiptap (for Tiptap editor integration)' +
-          '      • Lexical (for Lexical editor integration)' +
-          '      • Slate (for SlateJS editor integration)' +
+          '    📝 Comments - Choose type: ' +
+          '       • Freestyle (click anywhere on the page) ' +
+          '       • Popover (attached to specific elements) ' +
+          '       • Page (page-level comments) ' +
+          '       • Text (select text to comment) ' +
+          '       • Inline (inline comments within content) ' +
+          '       • Purpose-built library: Tiptap, Lexical, or Slate ' +
           '    👥 Presence - show live users with avatars ' +
           '    🖱️ Cursors - real-time cursor tracking ' +
           '    🔔 Notifications - notification center ' +
           '    🎥 Recorder - screen/audio recording ' +
           '  User can choose ANY combination ' +
-          '  NOTE: If user mentions Tiptap, Lexical, or Slate, use the corresponding comment type ' +
           '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
           '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
           '  This is REQUIRED - do not proceed without it ' +
@@ -148,7 +145,9 @@ export async function createServer() {
           '  Ask user: "Make sure your dev server is running (npm/pnpm/yarn run dev). Is it running on localhost?" ' +
           '\n\nSTEP 7 - CALL TOOL:' +
           '  Only after collecting ALL information above, call this tool with complete parameters ' +
-          '  IMPORTANT: Set commentType to the specific type user wants (freestyle/popover/page/text/inline) ' +
+          '  IMPORTANT: Set commentType to the specific type user wants: ' +
+          '    - For general use: freestyle, popover, page, text, inline ' +
+          '    - For editor integrations: tiptap (if using Tiptap), lexical (if using Lexical), slate (if using Slate.js) ' +
           '  IMPORTANT: Set features array to ALL features user wants (e.g., ["comments", "presence", "cursors"]) ' +
           '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features ' +
           '\n\nThe tool will: ' +
@@ -203,7 +202,7 @@ export async function createServer() {
             commentType: {
               type: 'string',
               enum: ['freestyle', 'popover', 'page', 'text', 'inline', 'tiptap', 'lexical', 'slate'],
-              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments), tiptap (Tiptap editor integration), lexical (Lexical editor integration), slate (SlateJS editor integration)',
+              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments), tiptap (Tiptap editor integration), lexical (Lexical editor integration), slate (Slate.js editor integration)',
             },
             headerPosition: {
               type: 'string',
