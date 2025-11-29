@@ -95,49 +95,86 @@ export function createVeltCommentsPlan(options) {
     details: `You are ONLY installing ${commentTypeTitle} Comments. DO NOT implement: VeltNotificationsTool, VeltPresence, VeltCursor, VeltRecorder, or any other components unless the user specifically requested them. Only use authentication, user setup, and document setup from CLI. Get ${commentTypeTitle} Comments implementation from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
   });
 
-  // Step 2: Add VeltProvider and VeltComments
+  // Step 2: Use CLI-generated Velt components
   const locationText = veltProviderLocation === 'auto-detect'
     ? 'the appropriate layout file (analyze the project structure to determine the best location)'
     : veltProviderLocation;
 
   steps.push({
-    title: `Add VeltProvider and VeltComments component to ${locationText}`,
-    details: `Fetch the implementation from ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files. Import VeltProvider and VeltComments from @veltdev/react and add them to ${locationText}.`,
+    title: `Import and use CLI-generated Velt components in ${locationText}`,
+    details: `The Velt CLI has generated the necessary component files in \`components/velt/\`. DO NOT create new files. Use the existing files:
+
+**CLI-Generated Files (DO NOT MODIFY):**
+- \`components/velt/VeltInitializeUser.tsx\` - Handles user authentication with VeltProvider
+- \`components/velt/VeltInitializeDocument.tsx\` - Handles document context
+- \`components/velt/VeltCollaboration.tsx\` - Main collaboration components wrapper
+- \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
+- \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
+
+**What to do:**
+1. Import the CLI-generated components into ${locationText}
+2. Wrap your app with these components
+3. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+
+**CRITICAL - For Tiptap/Lexical/Slate Comments:**
+- ✅ Use ONLY the comment-specific package: @veltdev/tiptap-velt-comments, @veltdev/lexical-velt-comments, or @veltdev/slate-velt-comments
+- ✅ Follow the markdown documentation for the specific editor type
+- ❌ DO NOT use CRDT packages (@veltdev/tiptap-velt-collaboration or similar)
+- ❌ DO NOT implement real-time collaborative editing - only comments on the editor
+- Example for Tiptap: Import TiptapVeltComments extension, useCommentAnnotations hook, addComment and renderComments utilities
+
+**IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.`,
     codeExamples: [
       {
-        description: `Install in ${locationText}`,
+        description: `Import CLI-generated components in ${locationText}`,
         language: 'tsx',
-        code: `// Get implementation from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}\n// Install VeltProvider in: ${locationText}\n// Example structure:\nimport { VeltProvider, VeltComments } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add VeltComments`,
+        code: `// Import CLI-generated Velt components
+import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser'
+import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument'
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
+
+// Wrap your app:
+<VeltInitializeUser>
+  <VeltInitializeDocument>
+    <VeltCollaboration>
+      {children}
+    </VeltCollaboration>
+  </VeltInitializeDocument>
+</VeltInitializeUser>
+
+// For ${commentType} comments: Follow implementation at ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
       },
     ],
   });
 
-  // Step 3: Set up authentication and user identification with TODOs
+  // Step 3: Add TODO comments to CLI-generated auth files
   steps.push({
-    title: `Set up user authentication and identification (with TODO comments)`,
-    details: `The Velt CLI has generated template files for authentication. You need to add TODO comments to guide the client on implementing their own logic:
+    title: `Add TODO comments to CLI-generated authentication files`,
+    details: `The Velt CLI has generated authentication files in specific locations. Add TODO comments to these existing files (DO NOT create new files):
 
-**1. User Identification Hook (useAppUser.tsx):**
-   - File: Look for the user authentication hook (e.g., \`app/userAuth/useAppUser.tsx\` or similar)
+**1. User Hook: \`app/userAuth/useAppUser.tsx\`**
+   - This file already exists from CLI
    - Add TODO: Connect to your existing authentication system
-   - Add TODO: Return actual user data from your auth provider
+   - Add TODO: Replace mock user data with actual user from your auth provider
+   - Examples: Next-auth useSession(), Clerk useUser(), Auth0, etc.
 
-**2. Document Context Hook (useCurrentDocument.tsx):**
-   - File: Look for the document hook (e.g., \`app/document/useCurrentDocument.tsx\` or similar)
+**2. Auth Provider: \`components/velt/VeltInitializeUser.tsx\`**
+   - This file already exists from CLI (references useAppUser)
+   - Contains \`useVeltAuthProvider\` hook
+   - File location may vary, look for useVeltAuthProvider hook
+
+**3. Document Hook: Check for \`app/document/useCurrentDocument.tsx\`**
+   - May be in CLI-generated files or needs to be created
    - Add TODO: Implement document identification logic
    - Add TODO: Return unique document ID based on current page/route
+   - Examples: router.query.id, pathname, page slug
 
-**3. Auth Token API Route (app/api/velt/auth/route.ts):**
-   - File: Look for the Velt auth API route
+**4. Token API: \`app/api/velt/token/route.ts\`**
+   - This file already exists from CLI
    - Add TODO: Connect to your backend authentication
-   - Add TODO: Validate user session/token before generating Velt token
+   - Add TODO: Validate user session before generating token
 
-**4. JWT Token Generator (if present):**
-   - Add TODO: SECURITY - Replace example secret with your actual secret key
-   - Add TODO: Use environment variables for secrets (never hardcode)
-   - Add TODO: Implement proper token expiration and refresh logic
-
-Add these TODO comments with clear explanations so the client knows exactly what to implement.`,
+**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.`,
     codeExamples: [
       {
         description: 'Example TODO comments to add',
@@ -483,43 +520,83 @@ export function createMultiFeaturePlan(options) {
     : veltProviderLocation;
 
   steps.push({
-    title: `Add VeltProvider and Velt components to ${locationText}`,
-    details: `Import VeltProvider and ${componentsToAdd.join(', ')} from @veltdev/react and add them to ${locationText}. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files.`,
+    title: `Import and use CLI-generated Velt components in ${locationText}`,
+    details: `The Velt CLI has generated the necessary component files in \`components/velt/\`. DO NOT create new files. Use the existing files:
+
+**CLI-Generated Files (DO NOT MODIFY):**
+- \`components/velt/VeltInitializeUser.tsx\` - Handles user authentication with VeltProvider
+- \`components/velt/VeltInitializeDocument.tsx\` - Handles document context
+- \`components/velt/VeltCollaboration.tsx\` - Main collaboration components wrapper
+- \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
+- \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
+
+**What to do:**
+1. Import the CLI-generated components into ${locationText}
+2. Wrap your app with these components
+3. Follow the markdown documentation for feature-specific implementation
+
+**CRITICAL - For Tiptap/Lexical/Slate Comments:**
+- ✅ Use ONLY the comment-specific package: @veltdev/tiptap-velt-comments, @veltdev/lexical-velt-comments, or @veltdev/slate-velt-comments
+- ✅ Follow the markdown documentation for the specific editor type
+- ❌ DO NOT use CRDT packages (@veltdev/tiptap-velt-collaboration or similar)
+- ❌ DO NOT implement real-time collaborative editing - only comments on the editor
+- Example for Tiptap: Import TiptapVeltComments extension, useCommentAnnotations hook, addComment and renderComments utilities
+
+**IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.
+
+**Get implementation details from markdown docs:**
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}`,
     codeExamples: [
       {
-        description: `Install in ${locationText}`,
+        description: `Import CLI-generated components in ${locationText}`,
         language: 'tsx',
-        code: `// Get implementations from:\n${hasComments ? `// Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `// Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `// Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `// Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `// Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}\n// Install VeltProvider in: ${locationText}\nimport { VeltProvider, ${componentsToAdd.join(', ')} } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add components`,
+        code: `// Import CLI-generated Velt components
+import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser'
+import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument'
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
+
+// Wrap your app:
+<VeltInitializeUser>
+  <VeltInitializeDocument>
+    <VeltCollaboration>
+      {children}
+    </VeltCollaboration>
+  </VeltInitializeDocument>
+</VeltInitializeUser>
+
+// Get component implementations from markdown docs above`,
       },
     ],
   });
 
   // Step 3: Set up authentication and user identification with TODOs
   steps.push({
-    title: `Set up user authentication and identification (with TODO comments)`,
-    details: `The Velt CLI has generated template files for authentication. You need to add TODO comments to guide the client on implementing their own logic:
+    title: `Add TODO comments to CLI-generated authentication files`,
+    details: `The Velt CLI has generated authentication files in specific locations. Add TODO comments to these existing files (DO NOT create new files):
 
-**1. User Identification Hook (useAppUser.tsx):**
-   - File: Look for the user authentication hook (e.g., \`app/userAuth/useAppUser.tsx\` or similar)
+**1. User Hook: \`app/userAuth/useAppUser.tsx\`**
+   - This file already exists from CLI
    - Add TODO: Connect to your existing authentication system
-   - Add TODO: Return actual user data from your auth provider
+   - Add TODO: Replace mock user data with actual user from your auth provider
+   - Examples: Next-auth useSession(), Clerk useUser(), Auth0, etc.
 
-**2. Document Context Hook (useCurrentDocument.tsx):**
-   - File: Look for the document hook (e.g., \`app/document/useCurrentDocument.tsx\` or similar)
+**2. Auth Provider: \`components/velt/VeltInitializeUser.tsx\`**
+   - This file already exists from CLI (references useAppUser)
+   - Contains \`useVeltAuthProvider\` hook
+   - File location may vary, look for useVeltAuthProvider hook
+
+**3. Document Hook: Check for \`app/document/useCurrentDocument.tsx\`**
+   - May be in CLI-generated files or needs to be created
    - Add TODO: Implement document identification logic
    - Add TODO: Return unique document ID based on current page/route
+   - Examples: router.query.id, pathname, page slug
 
-**3. Auth Token API Route (app/api/velt/auth/route.ts):**
-   - File: Look for the Velt auth API route
+**4. Token API: \`app/api/velt/token/route.ts\`**
+   - This file already exists from CLI
    - Add TODO: Connect to your backend authentication
-   - Add TODO: Validate user session/token before generating Velt token
+   - Add TODO: Validate user session before generating token
 
-**4. JWT Token Generator (if present):**
-   - Add TODO: SECURITY - Replace example secret with your actual secret key
-   - Add TODO: Use environment variables for secrets (never hardcode)
-   - Add TODO: Implement proper token expiration and refresh logic
-
-Add these TODO comments with clear explanations so the client knows exactly what to implement.`,
+**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.`,
     codeExamples: [
       {
         description: 'Example TODO comments to add',
