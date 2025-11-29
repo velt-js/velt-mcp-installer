@@ -72,6 +72,7 @@ ${example.code}
  * @param {Array} options.detectedFiles - Files detected for modification
  * @param {string} options.apiKey - API key preview
  * @param {string} options.headerPosition - Header position
+ * @param {string} options.veltProviderLocation - Where to install VeltProvider
  * @returns {string} Formatted installation plan
  */
 export function createVeltCommentsPlan(options) {
@@ -81,6 +82,7 @@ export function createVeltCommentsPlan(options) {
     detectedFiles = [],
     apiKey,
     headerPosition,
+    veltProviderLocation = 'app/layout.tsx',
   } = options;
 
   const commentTypeTitle = commentType.charAt(0).toUpperCase() + commentType.slice(1);
@@ -94,14 +96,18 @@ export function createVeltCommentsPlan(options) {
   });
 
   // Step 2: Add VeltProvider and VeltComments
+  const locationText = veltProviderLocation === 'auto-detect'
+    ? 'the appropriate layout file (analyze the project structure to determine the best location)'
+    : veltProviderLocation;
+
   steps.push({
-    title: `Add VeltProvider and VeltComments component`,
-    details: `Fetch the implementation from ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files. Import VeltProvider and VeltComments from @veltdev/react and add them to your root layout.`,
+    title: `Add VeltProvider and VeltComments component to ${locationText}`,
+    details: `Fetch the implementation from ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files. Import VeltProvider and VeltComments from @veltdev/react and add them to ${locationText}.`,
     codeExamples: [
       {
-        description: 'Refer to documentation for exact implementation',
+        description: `Install in ${locationText}`,
         language: 'tsx',
-        code: `// Get implementation from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}\n// Example structure:\nimport { VeltProvider, VeltComments } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add VeltComments`,
+        code: `// Get implementation from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}\n// Install VeltProvider in: ${locationText}\n// Example structure:\nimport { VeltProvider, VeltComments } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add VeltComments`,
       },
     ],
   });
@@ -269,6 +275,7 @@ function getTestInstructions(commentType) {
  * @param {Array} options.detectedFiles - Files detected for modification
  * @param {string} options.apiKey - API key preview
  * @param {string} options.headerPosition - Header position
+ * @param {string} options.veltProviderLocation - Where to install VeltProvider
  * @returns {string} Formatted installation plan
  */
 export function createMultiFeaturePlan(options) {
@@ -279,6 +286,7 @@ export function createMultiFeaturePlan(options) {
     detectedFiles = [],
     apiKey,
     headerPosition,
+    veltProviderLocation = 'app/layout.tsx',
   } = options;
 
   const steps = [];
@@ -309,14 +317,18 @@ export function createMultiFeaturePlan(options) {
   if (hasNotifications) componentsToAdd.push('VeltNotificationsTool');
   if (hasRecorder) componentsToAdd.push('VeltRecorder');
 
+  const locationText = veltProviderLocation === 'auto-detect'
+    ? 'the appropriate layout file (analyze the project structure to determine the best location)'
+    : veltProviderLocation;
+
   steps.push({
-    title: `Add VeltProvider and Velt components`,
-    details: `Import VeltProvider and ${componentsToAdd.join(', ')} from @veltdev/react and add them to your root layout. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files.`,
+    title: `Add VeltProvider and Velt components to ${locationText}`,
+    details: `Import VeltProvider and ${componentsToAdd.join(', ')} from @veltdev/react and add them to ${locationText}. Use the .md documentation as the source of truth for component implementation. DO NOT use CLI-generated component files.`,
     codeExamples: [
       {
-        description: 'Refer to documentation for exact implementation',
+        description: `Install in ${locationText}`,
         language: 'tsx',
-        code: `// Get implementations from:\n${hasComments ? `// Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `// Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `// Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `// Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `// Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}\nimport { VeltProvider, ${componentsToAdd.join(', ')} } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add components`,
+        code: `// Get implementations from:\n${hasComments ? `// Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `// Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `// Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `// Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `// Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}\n// Install VeltProvider in: ${locationText}\nimport { VeltProvider, ${componentsToAdd.join(', ')} } from '@veltdev/react'\n\n// Wrap your app with VeltProvider and add components`,
       },
     ],
   });

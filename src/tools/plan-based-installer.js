@@ -25,6 +25,7 @@ import fs from 'fs';
  * @param {string} params.authToken - Velt auth token (provided by user)
  * @param {string} params.commentType - Comment type (freestyle, popover, page, stream, text)
  * @param {string} [params.headerPosition] - Header position
+ * @param {string} [params.veltProviderLocation] - Where to install VeltProvider
  * @param {string} [params.targetArea] - Where to add comments
  * @param {string[]} [params.features] - Features to install
  * @param {Object} params.server - MCP server instance
@@ -37,6 +38,7 @@ export async function installVeltWithPlan(params) {
     authToken,
     commentType,
     headerPosition = 'top-right',
+    veltProviderLocation = 'app/layout.tsx',
     targetArea = '',
     features = ['comments'],
     server,
@@ -202,6 +204,7 @@ export async function installVeltWithPlan(params) {
           detectedFiles: detectedFiles.slice(0, 3), // Top 3 files
           apiKey: `${apiKey.substring(0, 8)}...`,
           headerPosition,
+          veltProviderLocation,
         })
       : createVeltCommentsPlan({
           commentType,
@@ -209,6 +212,7 @@ export async function installVeltWithPlan(params) {
           detectedFiles: detectedFiles.slice(0, 3), // Top 3 files
           apiKey: `${apiKey.substring(0, 8)}...`,
           headerPosition,
+          veltProviderLocation,
         });
 
     report.plan = plan;

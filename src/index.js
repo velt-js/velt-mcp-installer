@@ -138,18 +138,26 @@ export async function createServer() {
           '\n\nSTEP 4 - GET AUTH TOKEN (REQUIRED):' +
           '  Ask user: "Please provide your Velt Auth Token (from https://console.velt.dev)" ' +
           '  This is REQUIRED - do not proceed without it ' +
-          '\n\nSTEP 5 - SIDEBAR POSITION (if comments selected):' +
+          '\n\nSTEP 5 - VELTPROVIDER LOCATION:' +
+          '  Ask user: "Where should VeltProvider be installed?" ' +
+          '  Options: ' +
+          '    - Root layout (app/layout.tsx or app/layout.js) - RECOMMENDED for most apps ' +
+          '    - Custom file path (user specifies exact file) ' +
+          '    - Auto-detect (let AI analyze project structure and decide) ' +
+          '  Default: Root layout ' +
+          '\n\nSTEP 6 - SIDEBAR POSITION (if comments selected):' +
           '  Ask user: "Where should the comments sidebar header be positioned?" ' +
           '  Options: top-left, top-right, bottom-left, bottom-right ' +
-          '\n\nSTEP 6 - CONFIRM DEV SERVER:' +
+          '\n\nSTEP 7 - CONFIRM DEV SERVER:' +
           '  Ask user: "Make sure your dev server is running (npm/pnpm/yarn run dev). Is it running on localhost?" ' +
-          '\n\nSTEP 7 - CALL TOOL:' +
+          '\n\nSTEP 8 - CALL TOOL:' +
           '  Only after collecting ALL information above, call this tool with complete parameters ' +
           '  IMPORTANT: Set commentType to the specific type user wants: ' +
           '    - For general use: freestyle, popover, page, text, inline ' +
           '    - For editor integrations: tiptap (if using Tiptap), lexical (if using Lexical), slate (if using Slate.js) ' +
           '  IMPORTANT: Set features array to ALL features user wants (e.g., ["comments", "presence", "cursors"]) ' +
-          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features ' +
+          '  IMPORTANT: Set veltProviderLocation based on user\'s choice (e.g., "app/layout.tsx" or "auto-detect") ' +
+          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features, veltProviderLocation ' +
           '\n\nThe tool will: ' +
           '- Run Velt CLI to install base files (auth, user setup, document setup) ' +
           '- Take a screenshot of their running app ' +
@@ -208,6 +216,10 @@ export async function createServer() {
               type: 'string',
               enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
               description: 'Position for the comments sidebar header - ASK THE USER (default: top-right)',
+            },
+            veltProviderLocation: {
+              type: 'string',
+              description: 'Where to install VeltProvider - ASK THE USER. Options: "app/layout.tsx" (root layout - RECOMMENDED), custom file path, or "auto-detect" to let AI decide. Default: "app/layout.tsx"',
             },
             features: {
               type: 'array',
