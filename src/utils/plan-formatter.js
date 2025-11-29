@@ -170,19 +170,134 @@ Add these TODO comments with clear explanations so the client knows exactly what
     ],
   });
 
-  // Step 4: Replace API key placeholders
+  // Step 4: Comment out JWT token generation (SECURITY)
+  steps.push({
+    title: `Comment out JWT token generation in auth provider (SECURITY)`,
+    details: `Find the auth provider or token generation code (typically in a hook like \`useVeltAuthProvider\` or API route) and comment out the JWT token generation. Leave the structure visible with [Velt] comments for context.
+
+**Why comment it out:**
+- JWT token generation requires a secure secret key
+- The CLI-generated code uses example/placeholder secrets
+- Production apps should implement their own secure token generation
+- Prevents accidentally deploying with insecure example secrets
+
+**What to keep:**
+- User data retrieval (\`useAppUser\` or similar)
+- Auth provider object structure
+- Retry configuration
+
+**What to comment out:**
+- \`generateToken\` function implementation
+- Any JWT signing code
+- Example secret keys
+
+**Add clear [Velt] comments to explain:**
+- What each part does
+- Why token generation is commented out
+- What the developer needs to implement`,
+    codeExamples: [
+      {
+        description: 'Example: Comment out generateToken in auth provider hook',
+        language: 'typescript',
+        code: `export function useVeltAuthProvider() {
+  // [Velt] Get your app's current authenticated user to authenticate with Velt.
+  const { user } = useAppUser();
+
+  // [Velt] Create auth provider object to pass to VeltProvider
+  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
+    if (!user) return undefined;
+    return {
+      user,
+      retryConfig: { retryCount: 3, retryDelay: 1000 },
+
+      // [Velt] TODO: Implement secure token generation
+      // SECURITY: The example token generation has been commented out because:
+      // 1. It uses an example secret key that is NOT secure
+      // 2. You should implement your own backend token generation
+      // 3. Your backend should use a secure secret stored in environment variables
+      //
+      // To implement:
+      // 1. Create a backend API endpoint that generates JWT tokens
+      // 2. Use a secure secret key from environment variables
+      // 3. Validate the user's session before generating tokens
+      // 4. Set appropriate token expiration (e.g., 24 hours)
+      //
+      // Example implementation:
+      // generateToken: async () => {
+      //   return await getVeltJwtFromBackend({
+      //     userId: user.userId as string,
+      //     organizationId: user.organizationId as string,
+      //     email: user.email,
+      //   });
+      // },
+    };
+  }, [user]);
+
+  return { authProvider };
+}`,
+      },
+      {
+        description: 'Example: Comment out JWT generation in API route',
+        language: 'typescript',
+        code: `// app/api/velt/token/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  // [Velt] TODO: Implement secure token generation
+  // SECURITY: JWT generation has been commented out because:
+  // 1. The example uses a hardcoded secret key
+  // 2. There's no user session validation
+  // 3. Production apps need proper authentication
+  //
+  // Before uncommenting and using this:
+  // 1. Add user session validation
+  // 2. Use secure secret from environment variables
+  // 3. Implement token expiration
+  // 4. Never expose your secret key in client code
+  //
+  // Example secure implementation:
+  // const session = await getServerSession(authOptions);
+  // if (!session) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
+  //
+  // const secret = process.env.JWT_SECRET;
+  // if (!secret) {
+  //   throw new Error('JWT_SECRET not configured');
+  // }
+  //
+  // const token = jwt.sign(
+  //   {
+  //     userId: session.user.id,
+  //     organizationId: session.user.orgId,
+  //   },
+  //   secret,
+  //   { expiresIn: '24h' }
+  // );
+  //
+  // return NextResponse.json({ token });
+
+  return NextResponse.json({
+    error: 'Token generation not implemented. See TODO comments above.'
+  }, { status: 501 });
+}`,
+      },
+    ],
+  });
+
+  // Step 5: Replace API key placeholders
   steps.push({
     title: `Replace API key with actual value`,
     details: `Update all instances of "YOUR_VELT_API_KEY" and "YOUR_VELT_AUTH_TOKEN" with your actual values: ${apiKey}. Make sure to replace in VeltProvider configuration.`,
   });
 
-  // Step 5: Test the installation
+  // Step 6: Test the installation
   steps.push({
     title: `Test the ${commentTypeTitle} comments functionality`,
     details: `Start your development server and test ONLY the ${commentType} comments feature. ${getTestInstructions(commentType)} DO NOT test or implement other features.`,
   });
 
-  // Step 6: Check dev console for errors
+  // Step 7: Check dev console for errors
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
     details: `Open browser DevTools Console (Press F12 or Cmd+Option+I on Mac) and look for any Velt errors or warnings. Common errors include: "Please set document id to continue", "Velt API key not found", "Failed to authenticate user". If you find any errors, use the Velt Docs MCP to query for solutions. Example query: "How do I fix 'Please set document id to continue' error in Velt?"`,
@@ -437,13 +552,128 @@ Add these TODO comments with clear explanations so the client knows exactly what
     ],
   });
 
-  // Step 4: Replace API key placeholders
+  // Step 4: Comment out JWT token generation (SECURITY)
+  steps.push({
+    title: `Comment out JWT token generation in auth provider (SECURITY)`,
+    details: `Find the auth provider or token generation code (typically in a hook like \`useVeltAuthProvider\` or API route) and comment out the JWT token generation. Leave the structure visible with [Velt] comments for context.
+
+**Why comment it out:**
+- JWT token generation requires a secure secret key
+- The CLI-generated code uses example/placeholder secrets
+- Production apps should implement their own secure token generation
+- Prevents accidentally deploying with insecure example secrets
+
+**What to keep:**
+- User data retrieval (\`useAppUser\` or similar)
+- Auth provider object structure
+- Retry configuration
+
+**What to comment out:**
+- \`generateToken\` function implementation
+- Any JWT signing code
+- Example secret keys
+
+**Add clear [Velt] comments to explain:**
+- What each part does
+- Why token generation is commented out
+- What the developer needs to implement`,
+    codeExamples: [
+      {
+        description: 'Example: Comment out generateToken in auth provider hook',
+        language: 'typescript',
+        code: `export function useVeltAuthProvider() {
+  // [Velt] Get your app's current authenticated user to authenticate with Velt.
+  const { user } = useAppUser();
+
+  // [Velt] Create auth provider object to pass to VeltProvider
+  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
+    if (!user) return undefined;
+    return {
+      user,
+      retryConfig: { retryCount: 3, retryDelay: 1000 },
+
+      // [Velt] TODO: Implement secure token generation
+      // SECURITY: The example token generation has been commented out because:
+      // 1. It uses an example secret key that is NOT secure
+      // 2. You should implement your own backend token generation
+      // 3. Your backend should use a secure secret stored in environment variables
+      //
+      // To implement:
+      // 1. Create a backend API endpoint that generates JWT tokens
+      // 2. Use a secure secret key from environment variables
+      // 3. Validate the user's session before generating tokens
+      // 4. Set appropriate token expiration (e.g., 24 hours)
+      //
+      // Example implementation:
+      // generateToken: async () => {
+      //   return await getVeltJwtFromBackend({
+      //     userId: user.userId as string,
+      //     organizationId: user.organizationId as string,
+      //     email: user.email,
+      //   });
+      // },
+    };
+  }, [user]);
+
+  return { authProvider };
+}`,
+      },
+      {
+        description: 'Example: Comment out JWT generation in API route',
+        language: 'typescript',
+        code: `// app/api/velt/token/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  // [Velt] TODO: Implement secure token generation
+  // SECURITY: JWT generation has been commented out because:
+  // 1. The example uses a hardcoded secret key
+  // 2. There's no user session validation
+  // 3. Production apps need proper authentication
+  //
+  // Before uncommenting and using this:
+  // 1. Add user session validation
+  // 2. Use secure secret from environment variables
+  // 3. Implement token expiration
+  // 4. Never expose your secret key in client code
+  //
+  // Example secure implementation:
+  // const session = await getServerSession(authOptions);
+  // if (!session) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
+  //
+  // const secret = process.env.JWT_SECRET;
+  // if (!secret) {
+  //   throw new Error('JWT_SECRET not configured');
+  // }
+  //
+  // const token = jwt.sign(
+  //   {
+  //     userId: session.user.id,
+  //     organizationId: session.user.orgId,
+  //   },
+  //   secret,
+  //   { expiresIn: '24h' }
+  // );
+  //
+  // return NextResponse.json({ token });
+
+  return NextResponse.json({
+    error: 'Token generation not implemented. See TODO comments above.'
+  }, { status: 501 });
+}`,
+      },
+    ],
+  });
+
+  // Step 5: Replace API key placeholders
   steps.push({
     title: `Replace API keys with actual values`,
     details: `Update all instances of "YOUR_VELT_API_KEY" and "YOUR_VELT_AUTH_TOKEN" with your actual values: ${apiKey}. Make sure to replace in VeltProvider configuration.`,
   });
 
-  // Step 5: Test the installation
+  // Step 6: Test the installation
   const testInstructions = [];
   if (hasComments) testInstructions.push(`${commentType} comments: ${getTestInstructions(commentType)}`);
   if (hasPresence) testInstructions.push('Presence: Check that user avatars appear in the presence component');
@@ -456,7 +686,7 @@ Add these TODO comments with clear explanations so the client knows exactly what
     details: `Start your development server and test ONLY the features you requested:\n${testInstructions.map(t => `- ${t}`).join('\n')}\n\nDO NOT test or implement other features.`,
   });
 
-  // Step 6: Check dev console for errors
+  // Step 7: Check dev console for errors
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
     details: `Open browser DevTools Console (Press F12 or Cmd+Option+I on Mac) and look for any Velt errors or warnings. Common errors include: "Please set document id to continue", "Velt API key not found", "Failed to authenticate user". If you find any errors, use the Velt Docs MCP to query for solutions.`,
