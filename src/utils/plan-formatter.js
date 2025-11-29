@@ -112,31 +112,77 @@ export function createVeltCommentsPlan(options) {
     ],
   });
 
-  // Step 3: Set up authentication and user identification
+  // Step 3: Set up authentication and user identification with TODOs
   steps.push({
-    title: `Set up user authentication and identification`,
-    details: `Use the CLI-generated authentication files for user setup. Reference the user authentication setup from the CLI output. You ONLY need to set up user identification - do not add any Velt components here.`,
+    title: `Set up user authentication and identification (with TODO comments)`,
+    details: `The Velt CLI has generated template files for authentication. You need to add TODO comments to guide the client on implementing their own logic:
+
+**1. User Identification Hook (useAppUser.tsx):**
+   - File: Look for the user authentication hook (e.g., \`app/userAuth/useAppUser.tsx\` or similar)
+   - Add TODO: Connect to your existing authentication system
+   - Add TODO: Return actual user data from your auth provider
+
+**2. Document Context Hook (useCurrentDocument.tsx):**
+   - File: Look for the document hook (e.g., \`app/document/useCurrentDocument.tsx\` or similar)
+   - Add TODO: Implement document identification logic
+   - Add TODO: Return unique document ID based on current page/route
+
+**3. Auth Token API Route (app/api/velt/auth/route.ts):**
+   - File: Look for the Velt auth API route
+   - Add TODO: Connect to your backend authentication
+   - Add TODO: Validate user session/token before generating Velt token
+
+**4. JWT Token Generator (if present):**
+   - Add TODO: SECURITY - Replace example secret with your actual secret key
+   - Add TODO: Use environment variables for secrets (never hardcode)
+   - Add TODO: Implement proper token expiration and refresh logic
+
+Add these TODO comments with clear explanations so the client knows exactly what to implement.`,
+    codeExamples: [
+      {
+        description: 'Example TODO comments to add',
+        language: 'typescript',
+        code: `// In useAppUser.tsx:
+// TODO: Connect to your authentication system
+// TODO: Replace this mock user data with actual user from your auth provider
+// Example: const user = useAuth(); // Your auth hook
+// Example: const user = useSession(); // Next-auth
+// Example: const user = useUser(); // Clerk, Auth0, etc.
+
+// In useCurrentDocument.tsx:
+// TODO: Implement document identification logic
+// TODO: Return a unique document ID based on your app's routing
+// Example: Use route params, URL, page ID, etc.
+// Example: const documentId = router.query.id;
+// Example: const documentId = \`page-\${pathname}\`;
+
+// In app/api/velt/auth/route.ts:
+// TODO: SECURITY - Validate user session before generating token
+// TODO: Connect to your backend authentication
+// TODO: Verify user is authenticated and authorized
+
+// If JWT generation is present:
+// TODO: SECURITY - Replace 'your-secret-key' with actual secret
+// TODO: Store secret in environment variables (process.env.JWT_SECRET)
+// TODO: NEVER commit secrets to version control
+// TODO: Implement token expiration (expiresIn: '24h')`,
+      },
+    ],
   });
 
-  // Step 4: Set up document context
-  steps.push({
-    title: `Set up document context`,
-    details: `Use the CLI-generated document setup files to configure document identification. This is required for Velt to track comments per document/page.`,
-  });
-
-  // Step 5: Replace API key placeholders
+  // Step 4: Replace API key placeholders
   steps.push({
     title: `Replace API key with actual value`,
     details: `Update all instances of "YOUR_VELT_API_KEY" and "YOUR_VELT_AUTH_TOKEN" with your actual values: ${apiKey}. Make sure to replace in VeltProvider configuration.`,
   });
 
-  // Step 6: Test the installation
+  // Step 5: Test the installation
   steps.push({
     title: `Test the ${commentTypeTitle} comments functionality`,
     details: `Start your development server and test ONLY the ${commentType} comments feature. ${getTestInstructions(commentType)} DO NOT test or implement other features.`,
   });
 
-  // Step 8: Check dev console for errors
+  // Step 6: Check dev console for errors
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
     details: `Open browser DevTools Console (Press F12 or Cmd+Option+I on Mac) and look for any Velt errors or warnings. Common errors include: "Please set document id to continue", "Velt API key not found", "Failed to authenticate user". If you find any errors, use the Velt Docs MCP to query for solutions. Example query: "How do I fix 'Please set document id to continue' error in Velt?"`,
@@ -333,25 +379,71 @@ export function createMultiFeaturePlan(options) {
     ],
   });
 
-  // Step 3: Set up authentication and user identification
+  // Step 3: Set up authentication and user identification with TODOs
   steps.push({
-    title: `Set up user authentication and identification`,
-    details: `Use the CLI-generated authentication files for user setup. Reference the user authentication setup from the CLI output. You ONLY need to set up user identification - do not add any Velt components here.`,
+    title: `Set up user authentication and identification (with TODO comments)`,
+    details: `The Velt CLI has generated template files for authentication. You need to add TODO comments to guide the client on implementing their own logic:
+
+**1. User Identification Hook (useAppUser.tsx):**
+   - File: Look for the user authentication hook (e.g., \`app/userAuth/useAppUser.tsx\` or similar)
+   - Add TODO: Connect to your existing authentication system
+   - Add TODO: Return actual user data from your auth provider
+
+**2. Document Context Hook (useCurrentDocument.tsx):**
+   - File: Look for the document hook (e.g., \`app/document/useCurrentDocument.tsx\` or similar)
+   - Add TODO: Implement document identification logic
+   - Add TODO: Return unique document ID based on current page/route
+
+**3. Auth Token API Route (app/api/velt/auth/route.ts):**
+   - File: Look for the Velt auth API route
+   - Add TODO: Connect to your backend authentication
+   - Add TODO: Validate user session/token before generating Velt token
+
+**4. JWT Token Generator (if present):**
+   - Add TODO: SECURITY - Replace example secret with your actual secret key
+   - Add TODO: Use environment variables for secrets (never hardcode)
+   - Add TODO: Implement proper token expiration and refresh logic
+
+Add these TODO comments with clear explanations so the client knows exactly what to implement.`,
+    codeExamples: [
+      {
+        description: 'Example TODO comments to add',
+        language: 'typescript',
+        code: `// In useAppUser.tsx:
+// TODO: Connect to your authentication system
+// TODO: Replace this mock user data with actual user from your auth provider
+// Example: const user = useAuth(); // Your auth hook
+// Example: const user = useSession(); // Next-auth
+// Example: const user = useUser(); // Clerk, Auth0, etc.
+
+// In useCurrentDocument.tsx:
+// TODO: Implement document identification logic
+// TODO: Return a unique document ID based on your app's routing
+// Example: Use route params, URL, page ID, etc.
+// Example: const documentId = router.query.id;
+// Example: const documentId = \`page-\${pathname}\`;
+
+// In app/api/velt/auth/route.ts:
+// TODO: SECURITY - Validate user session before generating token
+// TODO: Connect to your backend authentication
+// TODO: Verify user is authenticated and authorized
+
+// If JWT generation is present:
+// TODO: SECURITY - Replace 'your-secret-key' with actual secret
+// TODO: Store secret in environment variables (process.env.JWT_SECRET)
+// TODO: NEVER commit secrets to version control
+// TODO: Implement token expiration (expiresIn: '24h')`,
+      },
+    ],
   });
 
-  // Step 4: Set up document context
-  steps.push({
-    title: `Set up document context`,
-    details: `Use the CLI-generated document setup files to configure document identification. This is required for Velt to track ${hasComments ? 'comments' : 'data'} per document/page.`,
-  });
-
-  // Step 5: Replace API key placeholders
+  // Step 4: Replace API key placeholders
   steps.push({
     title: `Replace API keys with actual values`,
     details: `Update all instances of "YOUR_VELT_API_KEY" and "YOUR_VELT_AUTH_TOKEN" with your actual values: ${apiKey}. Make sure to replace in VeltProvider configuration.`,
   });
 
-  // Step 6: Test the installation
+  // Step 5: Test the installation
   const testInstructions = [];
   if (hasComments) testInstructions.push(`${commentType} comments: ${getTestInstructions(commentType)}`);
   if (hasPresence) testInstructions.push('Presence: Check that user avatars appear in the presence component');
@@ -364,7 +456,7 @@ export function createMultiFeaturePlan(options) {
     details: `Start your development server and test ONLY the features you requested:\n${testInstructions.map(t => `- ${t}`).join('\n')}\n\nDO NOT test or implement other features.`,
   });
 
-  // Step 7: Check dev console for errors
+  // Step 6: Check dev console for errors
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
     details: `Open browser DevTools Console (Press F12 or Cmd+Option+I on Mac) and look for any Velt errors or warnings. Common errors include: "Please set document id to continue", "Velt API key not found", "Failed to authenticate user". If you find any errors, use the Velt Docs MCP to query for solutions.`,
