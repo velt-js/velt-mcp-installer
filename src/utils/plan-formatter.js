@@ -117,11 +117,39 @@ export function createVeltCommentsPlan(options) {
 3. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
+- ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
+- ✅ **INTEGRATE INTO EXISTING EDITOR** - Add Velt comments to the existing editor, DO NOT create a new editor
+- ✅ **USE BUBBLE MENU PATTERN** - Add comment button to bubble menu (appears on text selection), NOT a fixed toolbar
 - ✅ Use ONLY the comment-specific package: @veltdev/tiptap-velt-comments, @veltdev/lexical-velt-comments, or @veltdev/slate-velt-comments
-- ✅ Follow the markdown documentation for the specific editor type
+- ❌ DO NOT create a new editor component if one already exists
+- ❌ DO NOT create a fixed toolbar with Bold/Italic/Comment buttons
 - ❌ DO NOT use CRDT packages (@veltdev/tiptap-velt-collaboration or similar)
 - ❌ DO NOT implement real-time collaborative editing - only comments on the editor
-- Example for Tiptap: Import TiptapVeltComments extension, useCommentAnnotations hook, addComment and renderComments utilities
+
+**Tiptap Pattern:**
+\`\`\`tsx
+import { BubbleMenu } from '@tiptap/react'
+import { TiptapVeltComments, addComment, renderComments } from '@veltdev/tiptap-velt-comments'
+import { useCommentAnnotations } from '@veltdev/react'
+
+// Add to editor extensions: TiptapVeltComments
+// Use BubbleMenu component with comment button
+<BubbleMenu editor={editor}>
+  <button onClick={() => addComment({ editor })}>💬 Comment</button>
+</BubbleMenu>
+\`\`\`
+
+**Lexical Pattern:**
+- Add VeltCommentsPlugin to editor plugins
+- Use custom bubble menu that appears on selection
+- Trigger addComment() from bubble menu button
+
+**Slate Pattern:**
+- Wrap editor with withVeltComments()
+- Implement bubble menu with position tracking on selection
+- Trigger addComment({ editor }) from bubble menu button
+
+**If NO existing editor found:** Provide minimal integration example with bubble menu, but recommend user add to their existing editor.
 
 **IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.`,
     codeExamples: [
@@ -174,8 +202,65 @@ import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
    - Add TODO: Connect to your backend authentication
    - Add TODO: Validate user session before generating token
 
-**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.`,
+**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.
+
+**FOR TESTING PRESENCE/CURSORS:** Add logic to test with multiple users:
+1. Hardcode a fixed document ID (e.g., "demo-document") so all tabs use the same document
+2. Provide 2 hardcoded users (user-1 and user-2) with different names/avatars
+3. Allow switching users via URL parameter (?user=1 or ?user=2) to test presence/cursors
+4. Open multiple browser tabs with different user parameters to see live presence and cursors`,
     codeExamples: [
+      {
+        description: 'Example: Hardcoded document ID and multiple users for testing',
+        language: 'typescript',
+        code: `// In useCurrentDocument.tsx - Hardcode document ID for testing:
+export function useCurrentDocument() {
+  // [Velt] HARDCODED for testing presence/cursors
+  // TODO: Replace with dynamic document ID based on your routing
+  const documentId = "demo-document"; // Fixed ID so all tabs see same document
+
+  return { documentId, documentName: "Demo Document" };
+}
+
+// In useAppUser.tsx - Multiple users for testing:
+export function useAppUser() {
+  // [Velt] HARDCODED USERS for testing presence/cursors
+  // TODO: Replace with actual user from your auth provider
+
+  // Get user from URL parameter (?user=1 or ?user=2)
+  const searchParams = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const userParam = searchParams?.get('user') || '1';
+
+  const users = {
+    '1': {
+      userId: "user-1",
+      name: "Demo User 1",
+      email: "user1@example.com",
+      photoUrl: "https://i.pravatar.cc/150?img=1",
+      organizationId: "demo-org",
+    },
+    '2': {
+      userId: "user-2",
+      name: "Demo User 2",
+      email: "user2@example.com",
+      photoUrl: "https://i.pravatar.cc/150?img=2",
+      organizationId: "demo-org",
+    }
+  };
+
+  const user = users[userParam] || users['1'];
+
+  return { user, isUserLoggedIn: true };
+}
+
+// TESTING INSTRUCTIONS:
+// 1. Open http://localhost:3000?user=1 in one tab
+// 2. Open http://localhost:3000?user=2 in another tab
+// 3. You should see 2 different avatars in presence
+// 4. Move mouse in one tab to see cursor in the other tab`,
+      },
       {
         description: 'Example TODO comments to add',
         language: 'typescript',
@@ -536,11 +621,39 @@ export function createMultiFeaturePlan(options) {
 3. Follow the markdown documentation for feature-specific implementation
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
+- ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
+- ✅ **INTEGRATE INTO EXISTING EDITOR** - Add Velt comments to the existing editor, DO NOT create a new editor
+- ✅ **USE BUBBLE MENU PATTERN** - Add comment button to bubble menu (appears on text selection), NOT a fixed toolbar
 - ✅ Use ONLY the comment-specific package: @veltdev/tiptap-velt-comments, @veltdev/lexical-velt-comments, or @veltdev/slate-velt-comments
-- ✅ Follow the markdown documentation for the specific editor type
+- ❌ DO NOT create a new editor component if one already exists
+- ❌ DO NOT create a fixed toolbar with Bold/Italic/Comment buttons
 - ❌ DO NOT use CRDT packages (@veltdev/tiptap-velt-collaboration or similar)
 - ❌ DO NOT implement real-time collaborative editing - only comments on the editor
-- Example for Tiptap: Import TiptapVeltComments extension, useCommentAnnotations hook, addComment and renderComments utilities
+
+**Tiptap Pattern:**
+\`\`\`tsx
+import { BubbleMenu } from '@tiptap/react'
+import { TiptapVeltComments, addComment, renderComments } from '@veltdev/tiptap-velt-comments'
+import { useCommentAnnotations } from '@veltdev/react'
+
+// Add to editor extensions: TiptapVeltComments
+// Use BubbleMenu component with comment button
+<BubbleMenu editor={editor}>
+  <button onClick={() => addComment({ editor })}>💬 Comment</button>
+</BubbleMenu>
+\`\`\`
+
+**Lexical Pattern:**
+- Add VeltCommentsPlugin to editor plugins
+- Use custom bubble menu that appears on selection
+- Trigger addComment() from bubble menu button
+
+**Slate Pattern:**
+- Wrap editor with withVeltComments()
+- Implement bubble menu with position tracking on selection
+- Trigger addComment({ editor }) from bubble menu button
+
+**If NO existing editor found:** Provide minimal integration example with bubble menu, but recommend user add to their existing editor.
 
 **IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.
 
@@ -596,8 +709,65 @@ import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
    - Add TODO: Connect to your backend authentication
    - Add TODO: Validate user session before generating token
 
-**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.`,
+**IMPORTANT:** Only modify CLI-generated files. Do not create new files. Keep all Velt code in \`components/velt/\` and the specified locations.
+
+**FOR TESTING PRESENCE/CURSORS:** Add logic to test with multiple users:
+1. Hardcode a fixed document ID (e.g., "demo-document") so all tabs use the same document
+2. Provide 2 hardcoded users (user-1 and user-2) with different names/avatars
+3. Allow switching users via URL parameter (?user=1 or ?user=2) to test presence/cursors
+4. Open multiple browser tabs with different user parameters to see live presence and cursors`,
     codeExamples: [
+      {
+        description: 'Example: Hardcoded document ID and multiple users for testing',
+        language: 'typescript',
+        code: `// In useCurrentDocument.tsx - Hardcode document ID for testing:
+export function useCurrentDocument() {
+  // [Velt] HARDCODED for testing presence/cursors
+  // TODO: Replace with dynamic document ID based on your routing
+  const documentId = "demo-document"; // Fixed ID so all tabs see same document
+
+  return { documentId, documentName: "Demo Document" };
+}
+
+// In useAppUser.tsx - Multiple users for testing:
+export function useAppUser() {
+  // [Velt] HARDCODED USERS for testing presence/cursors
+  // TODO: Replace with actual user from your auth provider
+
+  // Get user from URL parameter (?user=1 or ?user=2)
+  const searchParams = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const userParam = searchParams?.get('user') || '1';
+
+  const users = {
+    '1': {
+      userId: "user-1",
+      name: "Demo User 1",
+      email: "user1@example.com",
+      photoUrl: "https://i.pravatar.cc/150?img=1",
+      organizationId: "demo-org",
+    },
+    '2': {
+      userId: "user-2",
+      name: "Demo User 2",
+      email: "user2@example.com",
+      photoUrl: "https://i.pravatar.cc/150?img=2",
+      organizationId: "demo-org",
+    }
+  };
+
+  const user = users[userParam] || users['1'];
+
+  return { user, isUserLoggedIn: true };
+}
+
+// TESTING INSTRUCTIONS:
+// 1. Open http://localhost:3000?user=1 in one tab
+// 2. Open http://localhost:3000?user=2 in another tab
+// 3. You should see 2 different avatars in presence
+// 4. Move mouse in one tab to see cursor in the other tab`,
+      },
       {
         description: 'Example TODO comments to add',
         language: 'typescript',
