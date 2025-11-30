@@ -1,8 +1,8 @@
 # Velt MCP Installer - Project Handoff
 
 **Project:** Velt MCP Installer
-**Status:** 🚧 In Progress - Core features complete, refinements pending
-**Last Updated:** November 27, 2024
+**Status:** ✅ Core Complete - All major features implemented, ready for hosting
+**Last Updated:** November 30, 2024
 **Repository:** velt-mcp-installer
 
 ---
@@ -88,36 +88,25 @@ Notifications feature is now fully supported in the multi-feature plan generator
 ## 🚧 Pending Tasks
 
 ### 5. Add a step to ask user where to install VeltProvider
-**Status:** ⏸️ **PENDING**
+**Status:** ✅ **COMPLETE** (Commit: 535ac37)
 
-**What's Needed:**
-- Add a question during the interactive workflow: "Where would you like to install VeltProvider?"
-- Options should include:
-  - Root layout (`app/layout.tsx`)
-  - Custom layout file
-  - Let AI decide based on project structure
-- Update plan generator to use the user's choice
+**Implementation:**
+- ✅ Added STEP 5 in workflow asking for VeltProvider location
+- ✅ Options: Root layout (recommended), Custom path, Auto-detect
+- ✅ Added `veltProviderLocation` parameter to tool schema
+- ✅ Updated step numbering (STEP 7 became STEP 8)
+- ✅ Both plan generators accept and use `veltProviderLocation`
 
-**Files to Modify:**
-- `src/index.js` - Add new step in workflow (between STEP 2 and STEP 3)
-- `src/tools/plan-based-installer.js` - Pass user's choice to plan generator
-- `src/utils/plan-formatter.js` - Use specified location in plan
-
-**Example Implementation:**
-```javascript
-// In src/index.js, add after STEP 2:
-'\n\nSTEP 2.5 - VELTPROVIDER LOCATION:' +
-'  Ask user: "Where should VeltProvider be installed?" ' +
-'  Options: ' +
-'    - Root layout (app/layout.tsx) - RECOMMENDED ' +
-'    - Custom location (user specifies path) ' +
-'    - Auto-detect (let AI analyze and decide) '
-```
+**Files Modified:**
+- `src/index.js:263-271` - Added STEP 5 for location choice
+- `src/index.js:297` - Added veltProviderLocation to tool schema
+- `src/tools/plan-based-installer.js:41` - Extracts veltProviderLocation parameter
+- `src/utils/plan-formatter.js:85,481` - Both plan generators accept parameter
 
 ---
 
 ### 6. Host the installer MCP
-**Status:** ⏸️ **PENDING**
+**Status:** ⏸️ **PENDING** (Only remaining task)
 
 **What's Needed:**
 - Deploy MCP server to a hosting service
@@ -147,86 +136,60 @@ Notifications feature is now fully supported in the multi-feature plan generator
 ---
 
 ### 7. Add TODOs for authprovider, get document hook, get user hook, jwt token generator
-**Status:** ⏸️ **PENDING**
+**Status:** ✅ **COMPLETE** (Commit: 4f3334c)
 
-**What's Needed:**
-Add TODO comments in the generated plan to guide users on implementing custom authentication logic:
+**Implementation:**
+- ✅ Added comprehensive Step 3 to both plan generators
+- ✅ Provides clear TODO guidance for 4 authentication areas
+- ✅ Includes detailed code examples with TODO comments
+- ✅ Security warnings and implementation guidance included
 
-1. **Auth Provider** - Where to add custom authentication
-2. **Get Document Hook** - How to implement document context
-3. **Get User Hook** - How to implement user identification
-4. **JWT Token Generator** - How to generate tokens securely
+**Areas Covered:**
+1. **User Identification Hook** (useAppUser.tsx) - Connect to auth system
+2. **Document Context Hook** (useCurrentDocument.tsx) - Implement document ID logic
+3. **Auth Token API Route** (app/api/velt/auth/route.ts) - Backend authentication
+4. **JWT Token Generator** - Secure token generation with environment variables
 
-**Files to Modify:**
-- `src/utils/plan-formatter.js` - Add TODO items in plan steps
+**Files Modified:**
+- `src/utils/plan-formatter.js:145-202` - Step 3 in createVeltCommentsPlan
+- `src/utils/plan-formatter.js:529-584` - Step 3 in createMultiFeaturePlan
 
-**Example:**
-```javascript
-// Add to plan generation:
-steps.push({
-  title: `⚠️ TODO: Implement Custom Authentication`,
-  details: `The CLI has generated template files for authentication. You need to:
-
-  1. **Auth Provider TODO** - Update the auth provider with your authentication logic
-     - File: app/api/velt/token/route.ts
-     - Replace placeholder logic with your auth system
-
-  2. **Get User Hook TODO** - Implement user identification
-     - File: app/userAuth/useAppUser.tsx
-     - Connect to your user management system
-
-  3. **Get Document Hook TODO** - Implement document context
-     - File: app/document/useCurrentDocument.tsx
-     - Define how documents are identified in your app
-
-  4. **JWT Token Generator TODO** - Secure token generation
-     - File: app/api/velt/token/route.ts
-     - Use your secret key, NOT the example one`,
-});
-```
+**Code Examples Included:**
+- TODO comments for connecting to auth systems (Next-auth, Clerk, Auth0)
+- Document ID implementation examples (router.query.id, pathname)
+- Security warnings about hardcoded secrets
+- Environment variable usage patterns
 
 ---
 
 ### 8. Comment out JWT token part in auth provider
-**Status:** ⏸️ **PENDING**
+**Status:** ✅ **COMPLETE** (Commit: 12b93cc)
 
-**What's Needed:**
-The generated plan should instruct the AI to comment out the JWT token generation code in the auth provider, with a TODO explaining why and what to do.
+**Implementation:**
+- ✅ Added Step 4 to both plan generators
+- ✅ Instructions to comment out JWT token generation with [Velt] context
+- ✅ Security explanations for why it's commented out
+- ✅ Implementation guidance for developers
 
-**Reasoning:**
-- JWT token generation requires secure secret keys
-- Should not use example/placeholder secrets
-- Users should implement their own token generation
+**What Gets Commented Out:**
+- `generateToken` function implementation in auth provider hook
+- JWT signing code in API routes
+- Example/placeholder secret keys
 
-**Files to Modify:**
-- `src/utils/plan-formatter.js` - Add instruction to comment out JWT code
+**What Gets Kept:**
+- User data retrieval (useAppUser)
+- Auth provider object structure
+- Retry configuration
 
-**Example:**
-```javascript
-steps.push({
-  title: `Comment out JWT token generation (SECURITY)`,
-  details: `In the file app/api/velt/token/route.ts, comment out the JWT token generation code:
+**Files Modified:**
+- `src/utils/plan-formatter.js:204-317` - Step 4 in createVeltCommentsPlan
+- `src/utils/plan-formatter.js:586-699` - Step 4 in createMultiFeaturePlan
 
-  \`\`\`typescript
-  // TODO: Implement your own JWT token generation
-  // DO NOT use the example secret key in production
-  // const token = jwt.sign({ userId, organizationId }, 'YOUR_SECRET_KEY');
-
-  // For now, we'll use Velt's token generation endpoint
-  const response = await fetch('https://api.velt.dev/v2/auth/token/get', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-velt-api-key': VELT_API_KEY,
-      'x-velt-auth-token': VELT_AUTH_TOKEN,
-    },
-    body: JSON.stringify({ data: { userId, userProperties: { organizationId } } }),
-  });
-  \`\`\`
-
-  This is commented out for security. Implement your own secure token generation before going to production.`,
-});
-```
+**Code Examples Included:**
+- useVeltAuthProvider hook with commented generateToken
+- API route with commented JWT generation
+- Clear [Velt] prefixed comments explaining security concerns
+- Step-by-step implementation guidance
 
 ---
 
@@ -368,6 +331,10 @@ velt-mcp-installer/
    - ✅ Includes markdown URLs
    - ✅ Shows explicit steps
    - ✅ Warns about what NOT to implement
+   - ✅ References CLI-generated files correctly
+   - ✅ Prevents CRDT usage for editor comments
+   - ✅ Uses bubble menu pattern for editor integrations
+   - ✅ Includes testing guidance for presence/cursors
 
 3. **Documentation URLs**
    - ✅ All comment types have URLs
@@ -382,12 +349,66 @@ velt-mcp-installer/
    - ✅ Notifications
    - ✅ Recorder
 
+5. **User Guidance**
+   - ✅ VeltProvider location choice
+   - ✅ TODO comments for auth/user/document hooks
+   - ✅ JWT security warnings
+   - ✅ Multi-user testing pattern
+   - ✅ Editor integration best practices
+
 ### What's Pending ⏸️
 
-1. **VeltProvider Location Choice** - User can't choose where to install
-2. **Hosting** - MCP server not publicly hosted
-3. **TODO Comments** - Missing guidance for auth/user/document hooks
-4. **JWT Security** - Token generation not commented out with explanation
+1. **Hosting** - MCP server not publicly hosted (ONLY REMAINING TASK)
+
+---
+
+## 🐛 Known Issues Fixed
+
+### Issue 1: Creating New Files Instead of Using CLI-Generated Files
+**Discovered:** November 30, 2024 during testing on `/Users/yoenzhang/Downloads/blog`
+**Impact:** AI was creating new Velt files outside `components/velt/` instead of using existing CLI-generated files
+**Root Cause:** Plan instructions didn't explicitly reference CLI-generated file locations
+**Fixed in:** Commit ce01b72
+**Solution:**
+- Updated Step 2 to list all CLI-generated files with purposes
+- Added explicit "DO NOT create new files" warnings
+- Provided code examples showing imports from existing components
+- Emphasized keeping all Velt code in `components/velt/`
+
+### Issue 2: CRDT Being Added to Editor Comments
+**Discovered:** November 30, 2024 during Tiptap testing
+**Impact:** Tiptap comments implementation added CRDT collaboration package instead of just comments
+**Root Cause:** Instructions didn't explicitly warn against CRDT packages
+**Fixed in:** Commit ce01b72
+**Solution:**
+- Added CRITICAL guidance section with explicit package names
+- Listed correct packages: @veltdev/tiptap-velt-comments (NOT @veltdev/tiptap-velt-collaboration)
+- Explicitly warned: "DO NOT use CRDT packages"
+- Clarified: "Only comments on the editor, NOT real-time collaborative editing"
+
+### Issue 3: Creating New Editors With Fixed Toolbars
+**Discovered:** November 30, 2024 during editor integration testing
+**Impact:** AI created entirely new editor components with fixed toolbars instead of integrating into existing editors with bubble menus
+**Root Cause:** Instructions didn't specify to find existing editors or use bubble menu pattern
+**Fixed in:** Commit 472cd5e
+**Solution:**
+- Added "FIND EXISTING EDITOR" instruction with emphasis
+- Added "USE BUBBLE MENU PATTERN" guidance with code examples
+- Provided Tiptap BubbleMenu implementation example
+- Added patterns for Lexical and Slate bubble menus
+- Explicitly warned against creating new editors or fixed toolbars
+
+### Issue 4: Presence/Cursors Not Working in Testing
+**Discovered:** November 30, 2024 during presence/cursor testing
+**Impact:** Presence and cursor features need multiple users and fixed document ID to work, but implementation only had one mock user
+**Root Cause:** No guidance for testing multi-user features
+**Fixed in:** Commit 472cd5e
+**Solution:**
+- Added hardcoded document ID pattern: "demo-document"
+- Provided 2 test users with different avatars (user-1, user-2)
+- Added URL parameter switching logic (?user=1 or ?user=2)
+- Included clear testing instructions for opening multiple tabs
+- Step-by-step guide: Open tabs with different user parameters to see presence/cursors
 
 ---
 
@@ -445,16 +466,66 @@ velt-mcp-installer/
 
 ---
 
-## 📝 Recent Changes (November 27, 2024)
+## 📝 Recent Changes
 
-### Commit: 4c58bdd - Fix installer to use markdown URLs and support all comment types
+### November 30, 2024 - Testing Phase Improvements
+
+#### Commit: ce01b72 - Fix plan generator to reference CLI-generated files and prevent CRDT usage
+**Critical Issue 1 Fixed:** Plans were creating new files instead of using CLI-generated ones
+- ✅ Updated both createVeltCommentsPlan and createMultiFeaturePlan
+- ✅ Step 2 now explicitly references CLI-generated files in components/velt/
+- ✅ Added clear instructions to NOT create new files
+- ✅ Listed all CLI-generated files with their purposes
+- ✅ Updated code examples to show importing existing components
+
+**Critical Issue 2 Fixed:** Tiptap/Lexical/Slate implementations were adding CRDT
+- ✅ Added CRITICAL guidance section in Step 2 of both plan generators
+- ✅ Explicitly instructs to use comment-specific packages only
+- ✅ Explicitly warns against CRDT packages
+- ✅ Clarifies to implement comments only, NOT collaborative editing
+
+#### Commit: 472cd5e - Fix editor integration and presence/cursor testing
+**Issue 1 Fixed:** Editor Integration Pattern
+- ✅ Updated Tiptap/Lexical/Slate guidance to emphasize finding existing editors
+- ✅ Added explicit instructions to use bubble menu pattern (not fixed toolbars)
+- ✅ Provided code examples for bubble menu implementation in all 3 editors
+- ✅ Added warnings against creating new editors or fixed toolbars
+
+**Key Changes:**
+```tsx
+// Tiptap bubble menu pattern (not fixed toolbar)
+import { BubbleMenu } from '@tiptap/react'
+<BubbleMenu editor={editor}>
+  <button onClick={() => addComment({ editor })}>💬 Comment</button>
+</BubbleMenu>
+```
+
+**Issue 2 Fixed:** Presence/Cursor Testing
+- ✅ Added guidance for hardcoding document ID for testing
+- ✅ Provided code examples for 2 hardcoded users (user-1 and user-2)
+- ✅ Added URL parameter switching logic (?user=1 or ?user=2)
+- ✅ Included testing instructions for opening multiple tabs
+
+**Testing Pattern:**
+```typescript
+// Hardcoded document ID: "demo-document"
+// 2 test users with different avatars
+// URL parameter switching: ?user=1 or ?user=2
+// Open multiple tabs to test presence/cursors
+```
+
+---
+
+### November 27, 2024 - Initial Implementation
+
+#### Commit: 4c58bdd - Fix installer to use markdown URLs and support all comment types
 **Changes:**
 - ✅ Fixed markdown URL priority (primary source)
 - ✅ Added all comment types to enum (inline, page, text)
 - ✅ Created `createMultiFeaturePlan()` for multi-feature support
 - ✅ Fixed plan generation to pass full implementation object
 
-### Commit: e74af53 - Add support for purpose-built library comment types
+#### Commit: e74af53 - Add support for purpose-built library comment types
 **Changes:**
 - ✅ Added Tiptap, Lexical, Slate to comment type enum
 - ✅ Updated prompt to show purpose-built library options
@@ -464,55 +535,62 @@ velt-mcp-installer/
 
 ## 🚀 Next Steps for Implementation
 
-### Immediate Priority (Complete Pending Tasks)
+### Immediate Priority
 
-1. **Add VeltProvider Location Choice**
-   - Modify `src/index.js` workflow
-   - Add STEP 2.5 for location selection
-   - Update plan generator to use specified location
-
-2. **Add TODO Comments for Auth/Hooks**
-   - Modify `src/utils/plan-formatter.js`
-   - Add step explaining TODOs for auth provider, user hook, document hook
-   - Include JWT token generation warning
-
-3. **Comment Out JWT Token Code**
-   - Add instruction in plan to comment out JWT generation
-   - Explain security reasoning
-   - Point to Velt's token generation endpoint as alternative
-
-4. **Host the MCP Server**
+1. **Host the MCP Server** ⏸️ (ONLY REMAINING CORE TASK)
    - Choose hosting platform (Railway recommended)
    - Deploy and test
    - Update documentation with hosted URL
+   - Configure for public access
 
 ### Short Term (Enhancements)
 
-5. **Improve Error Handling**
+2. **Improve Error Handling**
    - Better error messages for common issues
    - Suggestions for fixes
+   - Retry logic for failed operations
 
-6. **Add Validation Step**
+3. **Add Validation Step**
    - Check browser console for Velt errors
    - Suggest fixes based on common errors
+   - Verify installation completeness
 
-7. **Library Detection**
+4. **Library Detection**
    - Auto-detect Tiptap/Lexical/Slate in project
    - Suggest appropriate comment type
+   - Warn if editor package not installed
+
+5. **Enhanced Testing Guidance**
+   - Add more test scenarios
+   - Provide troubleshooting checklist
+   - Include common pitfalls and solutions
 
 ### Long Term (Production)
 
-8. **Rollback Mechanism**
+6. **Rollback Mechanism**
    - Undo failed installations
    - Restore previous state
+   - Backup before installation
 
-9. **CI/CD Pipeline**
+7. **CI/CD Pipeline**
    - Automated testing
    - Version management
+   - Deployment automation
 
-10. **npm Package**
-    - Publish as npm package
-    - Easier installation
+8. **npm Package**
+   - Publish as npm package
+   - Easier installation
+   - Versioned releases
+
+9. **Analytics & Monitoring**
+   - Track installation success rates
+   - Monitor common errors
+   - Usage analytics
+
+10. **Documentation Site**
+    - Interactive examples
+    - Video tutorials
+    - FAQ section
 
 ---
 
@@ -573,11 +651,40 @@ velt-mcp-installer/
 3. **Multi-Feature Support is Essential:** Users commonly want multiple features at once
 4. **Purpose-Built Libraries Matter:** Tiptap, Lexical, Slate integrations are important use cases
 5. **Security Matters:** JWT tokens and auth require explicit TODO guidance
+6. **Explicit Instructions Critical:** AI needs very explicit "DO NOT" warnings to avoid common mistakes
+7. **Testing Needs Real Scenarios:** Multi-user testing requires hardcoded users and document IDs
+8. **Editor Integration Patterns:** Bubble menus, not fixed toolbars - mimic demo repos exactly
+9. **CLI-Generated Files Sacred:** Never recreate what the CLI already generated - reference existing files
+10. **Iterative Testing Reveals Issues:** Real-world testing on actual projects exposes hidden assumptions
 
 ---
 
-**Status:** 🚧 Core features complete, 4 refinement tasks pending
+## 📊 Project Summary
 
-**Next Developer:** Focus on pending tasks 5-8 to complete the installer
+### Completed Tasks (7/8)
+- ✅ Clean up CLI for public repo
+- ✅ Create sample apps CLI + repo
+- ✅ Test with all comment types
+- ✅ Notifications support
+- ✅ VeltProvider location choice
+- ✅ TODO comments for auth/hooks
+- ✅ Comment out JWT token code
+
+### Remaining Tasks (1/8)
+- ⏸️ Host the installer MCP
+
+### Critical Fixes Applied
+- ✅ Fixed CLI-generated file references
+- ✅ Prevented CRDT usage in editor comments
+- ✅ Implemented bubble menu pattern for editors
+- ✅ Added multi-user testing guidance
+
+---
+
+**Status:** ✅ **CORE COMPLETE** - All features implemented and tested, ready for hosting
+
+**Next Developer:** Deploy the MCP server to a hosting platform and configure public access
+
+**Note:** The installer has been thoroughly tested and all major issues have been resolved. The only remaining task is deployment.
 
 Good luck! 🚀
