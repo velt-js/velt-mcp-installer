@@ -668,6 +668,43 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 3. ENSURE app/layout.tsx has AppUserProvider wrapper
 4. Follow the markdown documentation for feature-specific implementation
 
+⚠️ **CRITICAL: Position Velt Components to Avoid White Bar:**
+When using VeltPresence or VeltNotificationsTool in VeltCollaboration.tsx, wrap them in positioned containers:
+
+\`\`\`tsx
+export function VeltCollaboration() {
+  return (
+    <>
+      {/* [Velt] Presence - MUST be wrapped in positioned container */}
+      <div className="fixed top-4 left-4 z-50">
+        <VeltPresence flockMode={false} maxUsers={5} />
+      </div>
+
+      <VeltCursor />
+
+      {/* [Velt] Notifications - MUST be wrapped in positioned container */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <VeltNotificationsTool />
+      </div>
+
+      {/* ... other components ... */}
+    </>
+  );
+}
+\`\`\`
+
+**Why**: Without positioned containers, Velt components create a white bar at the top of the page.
+Also add to globals.css or VeltCustomization.css:
+\`\`\`css
+/* Remove default white background from Velt components */
+velt-presence-container,
+velt-presence-container *,
+velt-notifications-tool-container,
+velt-notifications-tool-container * {
+  background: transparent !important;
+}
+\`\`\`
+
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
 - ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
 - ✅ **INTEGRATE INTO EXISTING EDITOR** - Add Velt comments to the existing editor, DO NOT create a new editor
