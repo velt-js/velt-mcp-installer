@@ -131,6 +131,10 @@ export async function createServer() {
           '    🖱️ Cursors - real-time cursor tracking ' +
           '    🔔 Notifications - notification center ' +
           '    🎥 Recorder - screen/audio recording ' +
+          '    ⚡ CRDT (Real-time Collaborative Editing): ' +
+          '       • crdt-tiptap (Tiptap editor with real-time collaboration) ' +
+          '       • crdt-lexical (Lexical editor with real-time collaboration) ' +
+          '       • crdt-slate (Slate editor with real-time collaboration) ' +
           '  User can choose ANY combination ' +
           '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
           '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
@@ -225,9 +229,9 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt-tiptap', 'crdt-lexical', 'crdt-slate'],
               },
-              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder',
+              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder, crdt-tiptap (real-time collaborative editing with Tiptap), crdt-lexical (real-time collaborative editing with Lexical), crdt-slate (real-time collaborative editing with Slate)',
             },
             targetArea: {
               type: 'string',

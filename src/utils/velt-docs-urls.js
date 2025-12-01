@@ -53,13 +53,23 @@ export const VELT_DOCS_URLS = {
     customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/cursors/customize-behavior',
   },
 
+  // CRDT (Collaborative Real-Time Data Types)
+  crdt: {
+    setup: {
+      tiptap: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/tiptap',
+      lexical: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/lexical',
+      slate: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/slatejs',
+    },
+    customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/crdt/customize-behavior',
+  },
+
 };
 
 /**
  * Gets the documentation URL for a specific feature or comment type
  *
- * @param {string} feature - Feature name (comments, presence, cursors, notifications, recorder)
- * @param {string} [subtype] - Optional subtype (for comments: freestyle, popover, page, text, inline, tiptap, lexical, slate)
+ * @param {string} feature - Feature name (comments, presence, cursors, notifications, recorder, crdt)
+ * @param {string} [subtype] - Optional subtype (for comments: freestyle, popover, page, text, inline, tiptap, lexical, slate; for crdt: tiptap, lexical, slate)
  * @param {string} [page='setup'] - Page type (setup, customizeBehavior)
  * @returns {string} Documentation URL
  */
@@ -78,6 +88,13 @@ export function getDocUrl(feature, subtype = null, page = 'setup') {
 
   // Handle comments with subtypes (freestyle, popover, etc.)
   if (feature === 'comments' && subtype) {
+    if (featureConfig.setup && featureConfig.setup[subtype]) {
+      return featureConfig.setup[subtype];
+    }
+  }
+
+  // Handle CRDT with subtypes (tiptap, lexical, slate)
+  if (feature === 'crdt' && subtype) {
     if (featureConfig.setup && featureConfig.setup[subtype]) {
       return featureConfig.setup[subtype];
     }

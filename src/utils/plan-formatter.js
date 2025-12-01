@@ -175,6 +175,61 @@ import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
     ],
   });
 
+  // Step 2.5: Add CRDT (Real-time Collaborative Editing) if requested
+  if (hasCrdt) {
+    const crdtEditorType = hasCrdtTiptap ? 'tiptap' : hasCrdtLexical ? 'lexical' : 'slate';
+
+    steps.push({
+      title: `Add CRDT (Real-time Collaborative Editing) for ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}`,
+      details: `CRDT enables real-time collaborative editing (like Google Docs) where multiple users can edit the same document simultaneously.
+
+**CRITICAL DISTINCTION:**
+- Comments: Annotations/discussions on content (uses @veltdev/${crdtEditorType}-velt-comments)
+- CRDT: Real-time collaborative text editing (uses @veltdev/${crdtEditorType}-crdt-react)
+
+**Implementation Pattern for ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT:**
+
+1. **Find Existing Editor** - Search the project for existing ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} editor components
+2. **Install Required Packages** - npm install @veltdev/${crdtEditorType}-crdt-react
+3. **Use CRDT Extension Hook** - Import and use the useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension hook
+4. **Add to Editor Extensions** - Add the returned VeltCrdt extension to your editor
+5. **Disable History** - CRITICAL: Disable ${crdtEditorType} history extension to prevent conflicts
+
+**Documentation:** ${getDocMarkdownUrl('crdt', crdtEditorType)}`,
+      codeExamples: [
+        {
+          description: `${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT Integration Example`,
+          language: 'tsx',
+          code: `// Import CRDT extension hook
+import { useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension } from '@veltdev/${crdtEditorType}-crdt-react'
+import { useCurrentDocument } from '@/app/document/useCurrentDocument'
+
+export default function MyEditor() {
+  const { documentId } = useCurrentDocument()
+
+  // [Velt] Initialize CRDT extension for real-time collaborative editing
+  const { VeltCrdt, isLoading } = useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension({
+    editorId: documentId || 'default-editor',
+    initialContent: '<p>Your content here</p>',
+  })
+
+  // Initialize editor with CRDT extension
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        ${crdtEditorType === 'tiptap' ? 'history: false, // CRITICAL: Disable history' : 'undoRedo: false, // CRITICAL: Disable undo/redo'}
+      }),
+      ...(VeltCrdt ? [VeltCrdt] : []), // [Velt] Add CRDT extension
+    ],
+  }, [VeltCrdt])
+
+  return <EditorContent editor={editor} />
+}`,
+        },
+      ],
+    });
+  }
+
   // Step 3: Add TODO comments to CLI-generated auth files
   steps.push({
     title: `Add TODO comments to CLI-generated authentication files`,
@@ -578,6 +633,10 @@ export function createMultiFeaturePlan(options) {
   const hasCursors = features.includes('cursors');
   const hasNotifications = features.includes('notifications');
   const hasRecorder = features.includes('recorder');
+  const hasCrdtTiptap = features.includes('crdt-tiptap');
+  const hasCrdtLexical = features.includes('crdt-lexical');
+  const hasCrdtSlate = features.includes('crdt-slate');
+  const hasCrdt = hasCrdtTiptap || hasCrdtLexical || hasCrdtSlate;
 
   const featureList = [];
   if (hasComments) featureList.push(`${commentType.charAt(0).toUpperCase() + commentType.slice(1)} Comments`);
@@ -585,6 +644,9 @@ export function createMultiFeaturePlan(options) {
   if (hasCursors) featureList.push('Cursors');
   if (hasNotifications) featureList.push('Notifications');
   if (hasRecorder) featureList.push('Recorder');
+  if (hasCrdtTiptap) featureList.push('CRDT (Tiptap)');
+  if (hasCrdtLexical) featureList.push('CRDT (Lexical)');
+  if (hasCrdtSlate) featureList.push('CRDT (Slate)');
 
   // Add warning about only implementing requested features
   steps.push({
@@ -658,7 +720,7 @@ import { useCommentAnnotations } from '@veltdev/react'
 **IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.
 
 **Get implementation details from markdown docs:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}`,
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCrdtTiptap ? `- CRDT (Tiptap): ${getDocMarkdownUrl('crdt', 'tiptap')}\n` : ''}${hasCrdtLexical ? `- CRDT (Lexical): ${getDocMarkdownUrl('crdt', 'lexical')}\n` : ''}${hasCrdtSlate ? `- CRDT (Slate): ${getDocMarkdownUrl('crdt', 'slate')}\n` : ''}`,
     codeExamples: [
       {
         description: `Import CLI-generated components in ${locationText}`,
@@ -927,6 +989,9 @@ export async function POST(request: NextRequest) {
   if (hasCursors) testInstructions.push('Cursors: Open in two browser windows and move your mouse to see cursors');
   if (hasNotifications) testInstructions.push('Notifications: Check the notification bell icon appears');
   if (hasRecorder) testInstructions.push('Recorder: Check the recorder controls appear');
+  if (hasCrdtTiptap) testInstructions.push('CRDT (Tiptap): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
+  if (hasCrdtLexical) testInstructions.push('CRDT (Lexical): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
+  if (hasCrdtSlate) testInstructions.push('CRDT (Slate): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
 
   steps.push({
     title: `Test all requested features`,
