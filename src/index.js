@@ -163,8 +163,8 @@ export async function createServer() {
           '    - For general use: freestyle, popover, page, text, inline ' +
           '    - For editor integrations: tiptap (if using Tiptap), lexical (if using Lexical), slate (if using Slate.js) ' +
           '  IMPORTANT: Set features array to ALL features user wants (e.g., ["comments", "presence", "cursors"]) ' +
-          '  IMPORTANT: Set veltProviderLocation based on user\'s choice (e.g., "app/layout.tsx" or "auto-detect") ' +
-          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features, veltProviderLocation ' +
+          '  IMPORTANT: Ask user where they want VeltProvider (defaults to "app/page.tsx", but they may prefer a different client component file) ' +
+          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features ' +
           '\n\nThe tool will: ' +
           '- Run Velt CLI to install base files (auth, user setup, document setup) ' +
           '- Take a screenshot of their running app ' +
@@ -450,7 +450,7 @@ Configuration will be used to install Velt with freestyle comments.`,
             apiKey: args.apiKey,
             authToken: args.authToken,
             features: args?.features || ['comments'],
-            veltProviderLocation: args?.veltProviderLocation || 'app/layout.tsx',
+            veltProviderLocation: args?.veltProviderLocation || 'app/page.tsx',
             crdtEditorType: args?.crdtEditorType || null,
             server,
           });

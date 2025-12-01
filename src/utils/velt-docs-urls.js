@@ -56,9 +56,10 @@ export const VELT_DOCS_URLS = {
   // CRDT (Collaborative Real-Time Document editing)
   crdt: {
     setup: {
-      tiptap: 'https://docs.velt.dev/multiplayer-editing/text-editors/tiptap',
-      codemirror: 'https://docs.velt.dev/multiplayer-editing/text-editors/codemirror',
-      blocknote: 'https://docs.velt.dev/multiplayer-editing/text-editors/blocknote',
+      tiptap: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/tiptap',
+      codemirror: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/codemirror',
+      blocknote: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/blocknote',
+      reactflow: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/reactflow',
     },
     overview: 'https://docs.velt.dev/multiplayer-editing/overview',
   },

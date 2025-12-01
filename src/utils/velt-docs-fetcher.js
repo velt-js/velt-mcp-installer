@@ -114,6 +114,85 @@ function getBasicStructure(feature, subtype = null) {
   };
 }
 
+/**
+ * Fetches implementation details for any Velt feature
+ *
+ * Strategy:
+ * 1. Fetch from docs.velt.dev markdown URLs directly (primary)
+ * 2. If that fails, use Velt Docs MCP (fallback)
+ * 3. If both fail, return basic structure with doc URL reference
+ *
+ * @param {Object} options - Fetch options
+ * @param {string} options.feature - Feature name (comments, presence, cursors, notifications, recorder, crdt)
+ * @param {string} [options.subtype] - Optional subtype (e.g., 'freestyle' for comments, 'tiptap' for crdt)
+ * @param {Object} [options.mcpClient] - Optional MCP client for fallback
+ * @returns {Promise<Object>} Implementation details
+ */
+export async function fetchFeatureImplementation(options) {
+  const { feature, subtype = null, mcpClient } = options;
+
+  const featureDisplay = subtype ? `${feature}/${subtype}` : feature;
+  console.error(`🔍 Fetching ${featureDisplay} implementation from .md URL...`);
+
+  // Step 1: Fetch from markdown URL (primary)
+  console.error('   📄 Fetching from docs.velt.dev markdown...');
+  try {
+    const urlResult = await fetchFromMarkdownUrl(feature, subtype);
+    console.error('   ✅ Got documentation from markdown URL');
+    return urlResult;
+  } catch (error) {
+    console.error(`   ⚠️  Markdown fetch failed: ${error.message}`);
+  }
+
+  // Step 2: Fallback to Velt Docs MCP if .md URL failed
+  console.error('   📚 Falling back to Velt Docs MCP...');
+  try {
+    const query = subtype
+      ? `How do I implement ${subtype} ${feature} in Next.js?`
+      : `How do I implement ${feature} in Next.js?`;
+    const mcpResult = await queryVeltDocsMCP(query);
+
+    if (mcpResult.success) {
+      console.error('   ✅ Got implementation from Velt Docs MCP');
+      return {
+        success: true,
+        source: 'velt-docs-mcp',
+        docUrl: getDocUrl(feature, subtype),
+        mdUrl: getDocMarkdownUrl(feature, subtype),
+        data: mcpResult.data,
+      };
+    }
+  } catch (error) {
+    console.error(`   ⚠️  Velt Docs MCP failed: ${error.message}`);
+  }
+
+  // Step 3: Return basic structure with doc URL
+  console.error('   📖 Returning basic structure with doc URL reference');
+  return getBasicStructure(feature, subtype);
+}
+
+/**
+ * Fetches implementation details for CRDT feature
+ *
+ * @param {Object} options - Fetch options
+ * @param {string} options.editorType - Editor type (tiptap, codemirror, blocknote)
+ * @param {Object} [options.mcpClient] - Optional MCP client for fallback
+ * @returns {Promise<Object>} Implementation details
+ */
+export async function fetchCrdtImplementation(options) {
+  const { editorType, mcpClient } = options;
+
+  console.error(`🔍 Fetching CRDT ${editorType} implementation from .md URL...`);
+
+  return fetchFeatureImplementation({
+    feature: 'crdt',
+    subtype: editorType,
+    mcpClient,
+  });
+}
+
 export default {
   fetchCommentImplementation,
+  fetchFeatureImplementation,
+  fetchCrdtImplementation,
 };

@@ -56,7 +56,7 @@ export async function queryVeltMCP({ question }) {
             method: 'tools/list',
             id: Date.now(),
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(5000), // Reduced to 5 seconds
         });
       } catch (listError) {
         throw new Error(`Failed to connect to Velt Docs MCP: ${listError.message}`);
@@ -92,7 +92,7 @@ export async function queryVeltMCP({ question }) {
       }
 
       console.error(`   Step 2: Calling tool: ${searchTool.name}`);
-      
+
       // Call the tool
       const response = await fetch(veltDocsMCPUrl, {
         method: 'POST',
@@ -111,7 +111,7 @@ export async function queryVeltMCP({ question }) {
             },
           },
         }),
-        signal: AbortSignal.timeout(15000), // 15 second timeout for tool execution
+        signal: AbortSignal.timeout(5000), // Reduced to 5 seconds for faster failure
       });
 
       if (!response.ok) {
@@ -223,7 +223,7 @@ export async function queryVeltMCP({ question }) {
             'Accept': 'text/html',
             'User-Agent': 'Velt-MCP-Installer/1.0',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(5000), // Reduced to 5 seconds
         });
 
         if (!response.ok) {
@@ -285,14 +285,21 @@ export async function queryVeltMCP({ question }) {
 /**
  * Makes HTTPS request using Node.js built-in https module
  * (for Node < 18 compatibility)
- * 
+ *
  * @param {string} url - URL to request
  * @param {Object} data - JSON data to send
- * @param {number} timeout - Timeout in milliseconds (default: 10000)
+ * @param {number} timeout - Timeout in milliseconds (default: 5000)
  * @returns {Promise<Object>} Parsed JSON response
  */
-function makeHttpsRequest(url, data, timeout = 10000) {
-  return new Promise((resolve, reject) => {
+function makeHttpsRequest(url, data, timeout = 5000) {
+  // Wrap in Promise.race to guarantee timeout
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timeout after ${timeout}ms`));
+    }, timeout);
+  });
+
+  const requestPromise = new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
 
@@ -311,8 +318,19 @@ function makeHttpsRequest(url, data, timeout = 10000) {
 
     const req = https.request(options, (res) => {
       let responseData = '';
+      let responseSize = 0;
+      const maxResponseSize = 10 * 1024 * 1024; // 10MB max
 
       res.on('data', (chunk) => {
+        responseSize += chunk.length;
+
+        // Prevent memory exhaustion
+        if (responseSize > maxResponseSize) {
+          req.destroy();
+          reject(new Error(`Response too large (exceeded ${maxResponseSize} bytes)`));
+          return;
+        }
+
         responseData += chunk;
       });
 
@@ -327,17 +345,19 @@ function makeHttpsRequest(url, data, timeout = 10000) {
     });
 
     req.on('error', (error) => {
-      reject(error);
+      reject(new Error(`Request error: ${error.message}`));
     });
 
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Request timeout'));
+      reject(new Error('Socket timeout'));
     });
 
     req.write(postData);
     req.end();
   });
+
+  return Promise.race([requestPromise, timeoutPromise]);
 }
 
 /**
@@ -443,7 +463,7 @@ function fetchHtmlPage(url) {
         'Accept': 'text/html',
         'User-Agent': 'Velt-MCP-Installer/1.0',
       },
-      timeout: 10000,
+      timeout: 5000, // Reduced to 5 seconds for faster failure
     };
 
     const req = https.request(options, (res) => {

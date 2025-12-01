@@ -83,7 +83,7 @@ export function createVeltCommentsPlan(options) {
     detectedFiles = [],
     apiKey,
     headerPosition,
-    veltProviderLocation = 'app/layout.tsx',
+    veltProviderLocation = 'app/page.tsx',
     crdtEditorType,
   } = options;
 
@@ -557,7 +557,9 @@ function getTestInstructions(commentType) {
  * @param {string[]} options.features - Features to install (comments, presence, cursors, notifications, recorder, crdt)
  * @param {string} options.commentType - Type of comments (if comments feature is included)
  * @param {string} options.crdtEditorType - CRDT editor type (tiptap, codemirror, blocknote)
- * @param {Object} options.implementation - Implementation details from Velt Docs
+ * @param {Object} options.implementation - Comment implementation details from Velt Docs
+ * @param {Object} options.crdtImplementation - CRDT implementation details from Velt Docs
+ * @param {Object} options.featureImplementations - Other feature implementations from Velt Docs
  * @param {Array} options.detectedFiles - Files detected for modification
  * @param {string} options.apiKey - API key preview
  * @param {string} options.headerPosition - Header position
@@ -570,10 +572,12 @@ export function createMultiFeaturePlan(options) {
     commentType,
     crdtEditorType,
     implementation,
+    crdtImplementation,
+    featureImplementations = {},
     detectedFiles = [],
     apiKey,
     headerPosition,
-    veltProviderLocation = 'app/layout.tsx',
+    veltProviderLocation = 'app/page.tsx',
   } = options;
 
   const steps = [];
@@ -665,10 +669,16 @@ import { useCommentAnnotations } from '@veltdev/react'
 
 ${hasCRDT && crdtEditorType ? `
 **CRITICAL - For ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT (Collaborative Real-Time Document Editing):**
-${crdtEditorType === 'tiptap' ? `- ✅ Package: @veltdev/tiptap-crdt-react (NOT @veltdev/tiptap-velt-comments)
+${crdtEditorType === 'tiptap' ? `- ✅ **Required Packages:**
+  - @veltdev/tiptap-crdt-react (exact version: 4.5.8)
+  - @veltdev/tiptap-crdt (exact version: 4.5.8)
+  - @tiptap/y-tiptap (for Yjs integration)
+  - yjs (CRDT framework)
+  - y-prosemirror (ProseMirror bindings for Yjs)
 - ✅ Hook: useVeltTiptapCrdtExtension({ editorId, initialContent })
 - ✅ Returns: { VeltCrdt } extension
 - ✅ Add VeltCrdt to editor extensions array
+- ✅ Configure StarterKit with \`undoRedo: false\` (NOT \`history: false\`)
 - ✅ Can combine with TiptapVeltComments if you want both CRDT AND comments
 
 **Tiptap CRDT Pattern:**
@@ -746,7 +756,7 @@ return <BlockNoteView editor={editor} />
 ` : ''}
 ` : ''}
 **Get implementation details from markdown docs:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}`,
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (fetched from ${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (fetched from ${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (fetched from ${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (fetched from ${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (fetched from ${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (fetched from ${crdtImplementation.source})` : ''}\n` : ''}`,
     codeExamples: [
       {
         description: `Import CLI-generated components in ${locationText}`,
@@ -1048,7 +1058,7 @@ export async function POST(request: NextRequest) {
 - ❌ DO NOT copy code from CLI-generated files in components/velt/*
 
 **IMPLEMENTATION SOURCES:**
-${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}`,
+${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (${crdtImplementation.source})` : ''}\n` : ''}`,
     },
     {
       title: 'Documentation References',
@@ -1056,7 +1066,8 @@ ${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comme
 All Velt docs are available as markdown at: https://docs.velt.dev/[feature]/[page].md
 
 **Features you're installing:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (${crdtImplementation.source})` : ''}\n` : ''}
+${hasCRDT && crdtImplementation?.data?.markdown ? `\n**CRDT Implementation Details (from ${crdtImplementation.source}):**\n${crdtImplementation.data.markdown.substring(0, 2000)}${crdtImplementation.data.markdown.length > 2000 ? '...\n\n[See full documentation at: ' + crdtImplementation.mdUrl + ']' : ''}\n` : ''}
 **Using Velt Docs MCP:**
 After installation, query the Velt Docs MCP server for customization, troubleshooting, and advanced configuration.`,
     },
