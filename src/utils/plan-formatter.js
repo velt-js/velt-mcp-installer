@@ -113,10 +113,29 @@ export function createVeltCommentsPlan(options) {
 - \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
 - \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
 
+⚠️ **CRITICAL: app/layout.tsx MUST include AppUserProvider:**
+\`\`\`tsx
+import { AppUserProvider } from './userAuth/AppUserContext'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <AppUserProvider>
+          {children}
+        </AppUserProvider>
+      </body>
+    </html>
+  )
+}
+\`\`\`
+**Why**: Without AppUserProvider wrapper, user context is undefined and Velt auth breaks.
+
 **What to do:**
 1. Import the CLI-generated components into ${locationText}
 2. Wrap your app with these components
-3. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+3. ENSURE app/layout.tsx has AppUserProvider wrapper
+4. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
 - ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
@@ -625,10 +644,29 @@ export function createMultiFeaturePlan(options) {
 - \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
 - \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
 
+⚠️ **CRITICAL: app/layout.tsx MUST include AppUserProvider:**
+\`\`\`tsx
+import { AppUserProvider } from './userAuth/AppUserContext'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <AppUserProvider>
+          {children}
+        </AppUserProvider>
+      </body>
+    </html>
+  )
+}
+\`\`\`
+**Why**: Without AppUserProvider wrapper, user context is undefined and Velt auth breaks.
+
 **What to do:**
 1. Import the CLI-generated components into ${locationText}
 2. Wrap your app with these components
-3. Follow the markdown documentation for feature-specific implementation
+3. ENSURE app/layout.tsx has AppUserProvider wrapper
+4. Follow the markdown documentation for feature-specific implementation
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
 - ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
@@ -675,15 +713,39 @@ ${crdtEditorType === 'tiptap' ? `- ✅ **Required Packages:**
   - @tiptap/y-tiptap (for Yjs integration)
   - yjs (CRDT framework)
   - y-prosemirror (ProseMirror bindings for Yjs)
-- ✅ Hook: useVeltTiptapCrdtExtension({ editorId, initialContent })
-- ✅ Returns: { VeltCrdt } extension
-- ✅ Add VeltCrdt to editor extensions array
-- ✅ Configure StarterKit with \`undoRedo: false\` (NOT \`history: false\`)
-- ✅ Can combine with TiptapVeltComments if you want both CRDT AND comments
 
-**Tiptap CRDT Pattern:**
+⚠️ **CRITICAL STARTERKIT CONFIGURATION:**
+- ❌ **WRONG**: \`StarterKit.configure({ history: false })\` - DO NOT USE "history"
+- ✅ **CORRECT**: \`StarterKit.configure({ undoRedo: false, heading: false })\`
+- **Why**: StarterKit doesn't have a "history" option. Use "undoRedo" instead.
+
+⚠️ **CRITICAL INITIAL CONTENT:**
+- ❌ **WRONG**: \`content: initialContent\` in useEditor
+- ✅ **CORRECT**: \`// content: initialContent\` (comment it out)
+- **Why**: Let CRDT handle initial content loading
+
+⚠️ **CRITICAL COMMENTS EXTENSION:**
+- ❌ **WRONG**: \`TiptapVeltComments.configure({ editorId, HTMLAttributes })\`
+- ✅ **CORRECT**: \`TiptapVeltComments\` (no .configure())
+- **Why**: The extension works without configuration
+
+⚠️ **CRITICAL ADD COMMENT FUNCTION:**
+- ✅ **REQUIRED**: Import and use \`addComment\` from '@veltdev/tiptap-velt-comments'
+- ✅ **REQUIRED**: Create wrapper function and pass to BubbleMenuToolbar
+- **Example**:
+\`\`\`tsx
+const addTiptapVeltComment = () => {
+  if (editor) {
+    addComment({ editor })
+  }
+}
+\`\`\`
+
+**Tiptap CRDT Pattern (EXACT CODE TO USE):**
 \`\`\`tsx
 import { useVeltTiptapCrdtExtension } from '@veltdev/tiptap-crdt-react'
+import { TiptapVeltComments, addComment, renderComments } from '@veltdev/tiptap-velt-comments'
+import { useCommentAnnotations } from '@veltdev/react'
 import { useCurrentDocument } from '@/app/document/useCurrentDocument'
 
 const { documentId } = useCurrentDocument()
@@ -692,12 +754,33 @@ const { VeltCrdt } = useVeltTiptapCrdtExtension({
   initialContent: yourInitialContent,
 })
 
+const commentAnnotations = useCommentAnnotations()
+
 const editor = useEditor({
   extensions: [
+    StarterKit.configure({
+      undoRedo: false,  // CRITICAL: use undoRedo, NOT history
+      heading: false,
+    }),
     // ... other extensions
+    TiptapVeltComments,  // CRITICAL: no .configure()
     ...(VeltCrdt ? [VeltCrdt] : []),
   ],
-}, [VeltCrdt])
+  // content: initialContent,  // CRITICAL: comment this out
+  immediatelyRender: false,
+}, [VeltCrdt, bubbleMenuElement])
+
+const addTiptapVeltComment = () => {
+  if (editor) {
+    addComment({ editor })
+  }
+}
+
+useEffect(() => {
+  if (editor && commentAnnotations?.length) {
+    renderComments({ editor, commentAnnotations })
+  }
+}, [editor, commentAnnotations])
 \`\`\`
 ` : ''}${crdtEditorType === 'codemirror' ? `- ✅ Package: @veltdev/codemirror-crdt-react
 - ✅ Hook: useVeltCodeMirrorCrdtExtension({ editorId, initialContent })
