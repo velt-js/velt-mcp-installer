@@ -28,6 +28,7 @@ import fs from 'fs';
  * @param {string} [params.veltProviderLocation] - Where to install VeltProvider
  * @param {string} [params.targetArea] - Where to add comments
  * @param {string[]} [params.features] - Features to install
+ * @param {string} [params.crdtEditorType] - CRDT editor type (tiptap, codemirror, blocknote)
  * @param {Object} params.server - MCP server instance
  * @returns {Promise<Object>} Installation plan for AI to execute
  */
@@ -41,6 +42,7 @@ export async function installVeltWithPlan(params) {
     veltProviderLocation = 'app/layout.tsx',
     targetArea = '',
     features = ['comments'],
+    crdtEditorType = null,
     server,
   } = params;
 
@@ -205,6 +207,7 @@ export async function installVeltWithPlan(params) {
           apiKey: `${apiKey.substring(0, 8)}...`,
           headerPosition,
           veltProviderLocation,
+          crdtEditorType,
         })
       : createVeltCommentsPlan({
           commentType,
@@ -213,6 +216,7 @@ export async function installVeltWithPlan(params) {
           apiKey: `${apiKey.substring(0, 8)}...`,
           headerPosition,
           veltProviderLocation,
+          crdtEditorType,
         });
 
     report.plan = plan;

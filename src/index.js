@@ -131,11 +131,14 @@ export async function createServer() {
           '    🖱️ Cursors - real-time cursor tracking ' +
           '    🔔 Notifications - notification center ' +
           '    🎥 Recorder - screen/audio recording ' +
-          '    ⚡ CRDT (Real-time Collaborative Editing): ' +
-          '       • crdt-tiptap (Tiptap editor with real-time collaboration) ' +
-          '       • crdt-lexical (Lexical editor with real-time collaboration) ' +
-          '       • crdt-slate (Slate editor with real-time collaboration) ' +
+          '    📄 CRDT - collaborative real-time document editing (Tiptap, CodeMirror, BlockNote) ' +
           '  User can choose ANY combination ' +
+          '\n\nSTEP 2.5 - CRDT EDITOR TYPE (if CRDT selected):' +
+          '  Ask user: "Which editor do you want to use for CRDT?" ' +
+          '  Options: ' +
+          '    • Tiptap - Rich text editor with CRDT ' +
+          '    • CodeMirror - Code editor with CRDT ' +
+          '    • BlockNote - Block-style editor with CRDT ' +
           '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
           '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
           '  This is REQUIRED - do not proceed without it ' +
@@ -229,9 +232,14 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt-tiptap', 'crdt-lexical', 'crdt-slate'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt'],
               },
-              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder, crdt-tiptap (real-time collaborative editing with Tiptap), crdt-lexical (real-time collaborative editing with Lexical), crdt-slate (real-time collaborative editing with Slate)',
+              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder, crdt (collaborative real-time document editing)',
+            },
+            crdtEditorType: {
+              type: 'string',
+              enum: ['tiptap', 'codemirror', 'blocknote'],
+              description: 'CRDT editor type - ONLY ask if "crdt" is in features array. Options: tiptap (Tiptap editor), codemirror (CodeMirror editor), blocknote (BlockNote editor)',
             },
             targetArea: {
               type: 'string',
@@ -442,6 +450,8 @@ Configuration will be used to install Velt with freestyle comments.`,
             apiKey: args.apiKey,
             authToken: args.authToken,
             features: args?.features || ['comments'],
+            veltProviderLocation: args?.veltProviderLocation || 'app/layout.tsx',
+            crdtEditorType: args?.crdtEditorType || null,
             server,
           });
 

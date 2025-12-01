@@ -73,6 +73,7 @@ ${example.code}
  * @param {string} options.apiKey - API key preview
  * @param {string} options.headerPosition - Header position
  * @param {string} options.veltProviderLocation - Where to install VeltProvider
+ * @param {string} options.crdtEditorType - CRDT editor type (tiptap, codemirror, blocknote)
  * @returns {string} Formatted installation plan
  */
 export function createVeltCommentsPlan(options) {
@@ -83,6 +84,7 @@ export function createVeltCommentsPlan(options) {
     apiKey,
     headerPosition,
     veltProviderLocation = 'app/layout.tsx',
+    crdtEditorType,
   } = options;
 
   const commentTypeTitle = commentType.charAt(0).toUpperCase() + commentType.slice(1);
@@ -174,61 +176,6 @@ import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
       },
     ],
   });
-
-  // Step 2.5: Add CRDT (Real-time Collaborative Editing) if requested
-  if (hasCrdt) {
-    const crdtEditorType = hasCrdtTiptap ? 'tiptap' : hasCrdtLexical ? 'lexical' : 'slate';
-
-    steps.push({
-      title: `Add CRDT (Real-time Collaborative Editing) for ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}`,
-      details: `CRDT enables real-time collaborative editing (like Google Docs) where multiple users can edit the same document simultaneously.
-
-**CRITICAL DISTINCTION:**
-- Comments: Annotations/discussions on content (uses @veltdev/${crdtEditorType}-velt-comments)
-- CRDT: Real-time collaborative text editing (uses @veltdev/${crdtEditorType}-crdt-react)
-
-**Implementation Pattern for ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT:**
-
-1. **Find Existing Editor** - Search the project for existing ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} editor components
-2. **Install Required Packages** - npm install @veltdev/${crdtEditorType}-crdt-react
-3. **Use CRDT Extension Hook** - Import and use the useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension hook
-4. **Add to Editor Extensions** - Add the returned VeltCrdt extension to your editor
-5. **Disable History** - CRITICAL: Disable ${crdtEditorType} history extension to prevent conflicts
-
-**Documentation:** ${getDocMarkdownUrl('crdt', crdtEditorType)}`,
-      codeExamples: [
-        {
-          description: `${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT Integration Example`,
-          language: 'tsx',
-          code: `// Import CRDT extension hook
-import { useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension } from '@veltdev/${crdtEditorType}-crdt-react'
-import { useCurrentDocument } from '@/app/document/useCurrentDocument'
-
-export default function MyEditor() {
-  const { documentId } = useCurrentDocument()
-
-  // [Velt] Initialize CRDT extension for real-time collaborative editing
-  const { VeltCrdt, isLoading } = useVelt${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)}CrdtExtension({
-    editorId: documentId || 'default-editor',
-    initialContent: '<p>Your content here</p>',
-  })
-
-  // Initialize editor with CRDT extension
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        ${crdtEditorType === 'tiptap' ? 'history: false, // CRITICAL: Disable history' : 'undoRedo: false, // CRITICAL: Disable undo/redo'}
-      }),
-      ...(VeltCrdt ? [VeltCrdt] : []), // [Velt] Add CRDT extension
-    ],
-  }, [VeltCrdt])
-
-  return <EditorContent editor={editor} />
-}`,
-        },
-      ],
-    });
-  }
 
   // Step 3: Add TODO comments to CLI-generated auth files
   steps.push({
@@ -607,8 +554,9 @@ function getTestInstructions(commentType) {
  * Creates a comprehensive plan for multiple Velt features
  *
  * @param {Object} options - Installation options
- * @param {string[]} options.features - Features to install (comments, presence, cursors, notifications, recorder)
+ * @param {string[]} options.features - Features to install (comments, presence, cursors, notifications, recorder, crdt)
  * @param {string} options.commentType - Type of comments (if comments feature is included)
+ * @param {string} options.crdtEditorType - CRDT editor type (tiptap, codemirror, blocknote)
  * @param {Object} options.implementation - Implementation details from Velt Docs
  * @param {Array} options.detectedFiles - Files detected for modification
  * @param {string} options.apiKey - API key preview
@@ -620,6 +568,7 @@ export function createMultiFeaturePlan(options) {
   const {
     features = [],
     commentType,
+    crdtEditorType,
     implementation,
     detectedFiles = [],
     apiKey,
@@ -633,10 +582,7 @@ export function createMultiFeaturePlan(options) {
   const hasCursors = features.includes('cursors');
   const hasNotifications = features.includes('notifications');
   const hasRecorder = features.includes('recorder');
-  const hasCrdtTiptap = features.includes('crdt-tiptap');
-  const hasCrdtLexical = features.includes('crdt-lexical');
-  const hasCrdtSlate = features.includes('crdt-slate');
-  const hasCrdt = hasCrdtTiptap || hasCrdtLexical || hasCrdtSlate;
+  const hasCRDT = features.includes('crdt');
 
   const featureList = [];
   if (hasComments) featureList.push(`${commentType.charAt(0).toUpperCase() + commentType.slice(1)} Comments`);
@@ -644,9 +590,7 @@ export function createMultiFeaturePlan(options) {
   if (hasCursors) featureList.push('Cursors');
   if (hasNotifications) featureList.push('Notifications');
   if (hasRecorder) featureList.push('Recorder');
-  if (hasCrdtTiptap) featureList.push('CRDT (Tiptap)');
-  if (hasCrdtLexical) featureList.push('CRDT (Lexical)');
-  if (hasCrdtSlate) featureList.push('CRDT (Slate)');
+  if (hasCRDT) featureList.push(`CRDT (${crdtEditorType ? crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1) : 'Collaborative Editing'})`);
 
   // Add warning about only implementing requested features
   steps.push({
@@ -719,8 +663,90 @@ import { useCommentAnnotations } from '@veltdev/react'
 
 **IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.
 
+${hasCRDT && crdtEditorType ? `
+**CRITICAL - For ${crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1)} CRDT (Collaborative Real-Time Document Editing):**
+${crdtEditorType === 'tiptap' ? `- ✅ Package: @veltdev/tiptap-crdt-react (NOT @veltdev/tiptap-velt-comments)
+- ✅ Hook: useVeltTiptapCrdtExtension({ editorId, initialContent })
+- ✅ Returns: { VeltCrdt } extension
+- ✅ Add VeltCrdt to editor extensions array
+- ✅ Can combine with TiptapVeltComments if you want both CRDT AND comments
+
+**Tiptap CRDT Pattern:**
+\`\`\`tsx
+import { useVeltTiptapCrdtExtension } from '@veltdev/tiptap-crdt-react'
+import { useCurrentDocument } from '@/app/document/useCurrentDocument'
+
+const { documentId } = useCurrentDocument()
+const { VeltCrdt } = useVeltTiptapCrdtExtension({
+  editorId: documentId || 'default-editor',
+  initialContent: yourInitialContent,
+})
+
+const editor = useEditor({
+  extensions: [
+    // ... other extensions
+    ...(VeltCrdt ? [VeltCrdt] : []),
+  ],
+}, [VeltCrdt])
+\`\`\`
+` : ''}${crdtEditorType === 'codemirror' ? `- ✅ Package: @veltdev/codemirror-crdt-react
+- ✅ Hook: useVeltCodeMirrorCrdtExtension({ editorId, initialContent })
+- ✅ Returns: { store, isLoading }
+- ✅ Use store.getYText(), store.getAwareness(), store.getUndoManager()
+- ✅ Requires y-codemirror.next package for yCollab
+
+**CodeMirror CRDT Pattern:**
+\`\`\`tsx
+import { useVeltCodeMirrorCrdtExtension } from '@veltdev/codemirror-crdt-react'
+import { yCollab } from 'y-codemirror.next'
+import { EditorState } from '@codemirror/state'
+import { EditorView } from 'codemirror'
+
+const { store, isLoading } = useVeltCodeMirrorCrdtExtension({
+  editorId: 'codemirror-editor-1',
+  initialContent: yourInitialContent
+})
+
+// In useEffect:
+const startState = EditorState.create({
+  doc: store.getYText()?.toString() ?? '',
+  extensions: [
+    // ... other extensions
+    yCollab(store.getYText()!, store.getAwareness(), {
+      undoManager: store.getUndoManager()
+    }),
+  ],
+})
+
+const view = new EditorView({ state: startState, parent: editorRef.current })
+\`\`\`
+` : ''}${crdtEditorType === 'blocknote' ? `- ✅ Package: @veltdev/blocknote-crdt-react
+- ✅ Hook: useVeltBlockNoteCrdtExtension({ editorId, initialContent })
+- ✅ Returns: { collaborationConfig, isLoading }
+- ✅ Pass collaborationConfig to useCreateBlockNote
+- ✅ BlockNote handles CRDT automatically with the config
+
+**BlockNote CRDT Pattern:**
+\`\`\`tsx
+import { useVeltBlockNoteCrdtExtension } from '@veltdev/blocknote-crdt-react'
+import { useCreateBlockNote } from '@blocknote/react'
+import { BlockNoteView } from '@blocknote/mantine'
+
+const { collaborationConfig, isLoading } = useVeltBlockNoteCrdtExtension({
+  editorId: 'blocknote-editor-1',
+  initialContent: JSON.stringify([{ type: "paragraph", content: "" }])
+})
+
+const editor = useCreateBlockNote({
+  collaboration: collaborationConfig,
+}, [collaborationConfig])
+
+return <BlockNoteView editor={editor} />
+\`\`\`
+` : ''}
+` : ''}
 **Get implementation details from markdown docs:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCrdtTiptap ? `- CRDT (Tiptap): ${getDocMarkdownUrl('crdt', 'tiptap')}\n` : ''}${hasCrdtLexical ? `- CRDT (Lexical): ${getDocMarkdownUrl('crdt', 'lexical')}\n` : ''}${hasCrdtSlate ? `- CRDT (Slate): ${getDocMarkdownUrl('crdt', 'slate')}\n` : ''}`,
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}`,
     codeExamples: [
       {
         description: `Import CLI-generated components in ${locationText}`,
@@ -989,9 +1015,6 @@ export async function POST(request: NextRequest) {
   if (hasCursors) testInstructions.push('Cursors: Open in two browser windows and move your mouse to see cursors');
   if (hasNotifications) testInstructions.push('Notifications: Check the notification bell icon appears');
   if (hasRecorder) testInstructions.push('Recorder: Check the recorder controls appear');
-  if (hasCrdtTiptap) testInstructions.push('CRDT (Tiptap): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
-  if (hasCrdtLexical) testInstructions.push('CRDT (Lexical): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
-  if (hasCrdtSlate) testInstructions.push('CRDT (Slate): Open editor in two browser windows with different users (?user=1, ?user=2), type in one window and see changes appear in the other');
 
   steps.push({
     title: `Test all requested features`,
@@ -1025,7 +1048,7 @@ export async function POST(request: NextRequest) {
 - ❌ DO NOT copy code from CLI-generated files in components/velt/*
 
 **IMPLEMENTATION SOURCES:**
-${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}`,
+${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}`,
     },
     {
       title: 'Documentation References',
@@ -1033,7 +1056,7 @@ ${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comme
 All Velt docs are available as markdown at: https://docs.velt.dev/[feature]/[page].md
 
 **Features you're installing:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}
+${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}\n` : ''}${hasPresence ? `- Presence: ${getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${getDocMarkdownUrl('cursors')}\n` : ''}${hasNotifications ? `- Notifications: ${getDocMarkdownUrl('notifications')}\n` : ''}${hasRecorder ? `- Recorder: ${getDocMarkdownUrl('recorder')}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${getDocMarkdownUrl('crdt', crdtEditorType)}\n` : ''}
 **Using Velt Docs MCP:**
 After installation, query the Velt Docs MCP server for customization, troubleshooting, and advanced configuration.`,
     },
