@@ -15,6 +15,7 @@ import {
 import { installVeltFreestyle } from './tools/orchestrator.js';
 import { installVeltInteractive } from './tools/interactive-installer.js';
 import { installVeltWithPlan } from './tools/plan-based-installer.js';
+import { installVeltUnified } from './tools/unified-installer.js';
 import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
 import { detectCommentPlacement } from './utils/comment-detector.js';
 
@@ -111,94 +112,80 @@ export async function createServer() {
       {
         name: 'install_velt_interactive',
         description:
-          '🌟 RECOMMENDED: Interactive Velt installation with AI-guided implementation. ' +
-          'This tool orchestrates setup and generates a PLAN for you to execute. ' +
-          '\n\nWORKFLOW TO FOLLOW - YOU MUST ASK ALL QUESTIONS BEFORE CALLING THE TOOL: ' +
+          '🌟 RECOMMENDED: Unified Velt installation with guided or CLI-only mode. ' +
+          '\n\n🚨🚨🚨 CRITICAL: ASK QUESTIONS ONE AT A TIME 🚨🚨🚨' +
+          '\nDO NOT dump all questions in one message.' +
+          '\nWait for user response before asking the next question.' +
+          '\nNO DEFAULTS - user must explicitly answer each question.' +
+          '\n\n=========================================' +
+          '\nWORKFLOW - ASK ONE QUESTION, WAIT, THEN NEXT:' +
+          '\n=========================================' +
           '\n\nSTEP 1 - CONFIRM DIRECTORY:' +
-          '  Ask user: "Is this the correct directory: [show directory]?" ' +
-          '  Wait for confirmation before proceeding ' +
-          '\n\nSTEP 2 - SELECT FEATURES:' +
-          '  Ask user: "What features do you want to install?" ' +
-          '  Show ALL options: ' +
-          '    📝 Comments - Choose type: ' +
-          '       • Freestyle (click anywhere on the page) ' +
-          '       • Popover (attached to specific elements) ' +
-          '       • Page (page-level comments) ' +
-          '       • Text (select text to comment) ' +
-          '       • Inline (inline comments within content) ' +
-          '       • Purpose-built library: Tiptap, Lexical, or Slate ' +
-          '    👥 Presence - show live users with avatars ' +
-          '    🖱️ Cursors - real-time cursor tracking ' +
-          '    🔔 Notifications - notification center ' +
-          '    🎥 Recorder - screen/audio recording ' +
-          '    📄 CRDT - collaborative real-time document editing (Tiptap, CodeMirror, BlockNote) ' +
-          '  User can choose ANY combination ' +
-          '\n\nSTEP 2.5 - CRDT EDITOR TYPE (if CRDT selected):' +
-          '  Ask user: "Which editor do you want to use for CRDT?" ' +
-          '  Options: ' +
-          '    • Tiptap - Rich text editor with CRDT ' +
-          '    • CodeMirror - Code editor with CRDT ' +
-          '    • BlockNote - Block-style editor with CRDT ' +
-          '\n\nSTEP 3 - GET API KEY (REQUIRED):' +
-          '  Ask user: "Please provide your Velt API Key (from https://console.velt.dev)" ' +
-          '  This is REQUIRED - do not proceed without it ' +
-          '\n\nSTEP 4 - GET AUTH TOKEN (REQUIRED):' +
-          '  Ask user: "Please provide your Velt Auth Token (from https://console.velt.dev)" ' +
-          '  This is REQUIRED - do not proceed without it ' +
-          '\n\nSTEP 5 - VELTPROVIDER LOCATION:' +
-          '  Ask user: "Where should VeltProvider be installed?" ' +
-          '  Options: ' +
-          '    - Root layout (app/layout.tsx or app/layout.js) - RECOMMENDED for most apps ' +
-          '    - Custom file path (user specifies exact file) ' +
-          '    - Auto-detect (let AI analyze project structure and decide) ' +
-          '  Default: Root layout ' +
-          '\n\nSTEP 6 - SIDEBAR POSITION (if comments selected):' +
-          '  Ask user: "Where should the comments sidebar header be positioned?" ' +
-          '  Options: top-left, top-right, bottom-left, bottom-right ' +
-          '\n\nSTEP 7 - CONFIRM DEV SERVER:' +
-          '  Ask user: "Make sure your dev server is running (npm/pnpm/yarn run dev). Is it running on localhost?" ' +
-          '\n\nSTEP 8 - CALL TOOL:' +
-          '  Only after collecting ALL information above, call this tool with complete parameters ' +
-          '  IMPORTANT: Set commentType to the specific type user wants: ' +
-          '    - For general use: freestyle, popover, page, text, inline ' +
-          '    - For editor integrations: tiptap (if using Tiptap), lexical (if using Lexical), slate (if using Slate.js) ' +
-          '  IMPORTANT: Set features array to ALL features user wants (e.g., ["comments", "presence", "cursors"]) ' +
-          '  IMPORTANT: Ask user where they want VeltProvider (defaults to "app/page.tsx", but they may prefer a different client component file) ' +
-          '  DO NOT call the tool until you have: projectPath, apiKey, authToken, commentType, features ' +
-          '\n\nThe tool will: ' +
-          '- Run Velt CLI to install base files (auth, user setup, document setup) ' +
-          '- Take a screenshot of their running app ' +
-          '- Scan the codebase and detect libraries ' +
-          '- Fetch implementation details from Velt Docs markdown URLs (ex: https://docs.velt.dev/[feature]/setup.md) ' +
-          '- Generate a detailed IMPLEMENTATION PLAN ' +
-          '\n\nCRITICAL - WHAT TO USE FROM VELT CLI vs .MD DOCS: ' +
-          '- FROM CLI: ONLY use authentication setup, user setup, and document setup ' +
-          '- FROM .MD DOCS: Get ALL component implementations (VeltComments, VeltPresence, VeltCursor, etc.) ' +
-          '- NEVER use: VeltTools, ui-customization folder (unless user explicitly asks for customization) ' +
-          '- NEVER install: Components the user did not request ' +
-          '\n\nAFTER CALLING THIS TOOL: ' +
-          '- The tool returns a PLAN in markdown format ' +
-          '- FIRST: Present the plan to the user so they can review it ' +
-          '- THEN: Ask if they want you to execute the plan ' +
-          '- FINALLY: Execute the plan step-by-step if they confirm ' +
-          '- ONLY implement features the user requested - DO NOT add extra features ' +
-          '- Use .md documentation URLs for component implementation patterns ' +
-          '- DO NOT use CLI-generated component files as reference (except auth/user/doc setup) ' +
-          '- Replace placeholders with actual API keys provided by user ' +
-          '- AT THE END: Check browser DevTools Console for Velt errors/warnings and use Velt Docs MCP to resolve any issues ' +
-          '\n\nPOST-INSTALLATION SUPPORT: ' +
-          '- For questions, fixes, or issues AFTER installation, use the Velt Docs MCP server to get answers ' +
-          '- Query the Velt Docs MCP for feature customization, troubleshooting, and advanced configuration ' +
-          '- Example query: "How do I customize presence avatars?" or "How to fix authentication errors in Velt?" ' +
-          '\n\nDEV TOOLS & CONSOLE WARNINGS: ' +
-          '- After installation, tell the user to check their browser DevTools console (F12) for Velt warnings ' +
-          '- The Velt SDK logs helpful diagnostic messages about configuration issues, API key problems, etc. ' +
-          '- If users encounter issues, ask them to share console warnings, then query Velt Docs MCP to find solutions ' +
-          '\n\nIMPORTANT: ' +
-          '- This tool does NOT complete the installation - it prepares and plans it ' +
-          '- YOU must PRESENT the plan to the user FIRST before executing ' +
-          '- The plan includes code examples and detailed instructions ' +
-          '- Follow the plan\'s checklist sequentially after user confirms',
+          '\n  Ask ONLY: "Is this the correct Next.js project directory: [path]?"' +
+          '\n  WAIT for user to confirm (yes/no).' +
+          '\n\nSTEP 2 - GET API KEY:' +
+          '\n  Ask ONLY: "Please provide your Velt API Key (from https://console.velt.dev)"' +
+          '\n  WAIT for user response.' +
+          '\n\nSTEP 3 - GET AUTH TOKEN:' +
+          '\n  Ask ONLY: "Please provide your Velt Auth Token (from https://console.velt.dev)"' +
+          '\n  WAIT for user response.' +
+          '\n\nSTEP 4 - FEATURE SELECTION (with SKIP option):' +
+          '\n  Ask: "Select features to install OR type SKIP for CLI-only (you set up features yourself later):"' +
+          '\n    📝 Comments (specify type: freestyle/popover/page/text/inline/tiptap/lexical/slate)' +
+          '\n    👥 Presence' +
+          '\n    🖱️ Cursors' +
+          '\n    🔔 Notifications' +
+          '\n    🎥 Recorder' +
+          '\n    📄 CRDT (specify editor: tiptap/codemirror/blocknote)' +
+          '\n    ─────────────────────────────────────' +
+          '\n    ⏭️  SKIP = CLI scaffolding only, no feature integration' +
+          '\n  WAIT for user response.' +
+          '\n\n=========================================' +
+          '\n🚨🚨🚨 IF USER TYPES "SKIP" (case-insensitive): 🚨🚨🚨' +
+          '\n=========================================' +
+          '\n  SKIP does NOT mean "use defaults"' +
+          '\n  SKIP means: RUN CLI ONLY, NO FEATURES, NO DEFAULTS' +
+          '\n  ' +
+          '\n  IMMEDIATELY call this tool with ONLY these params:' +
+          '\n    projectPath: [confirmed path]' +
+          '\n    apiKey: [user provided]' +
+          '\n    authToken: [user provided]' +
+          '\n    mode: "cli-only"' +
+          '\n  ' +
+          '\n  DO NOT pass features, commentType, or any other params.' +
+          '\n  DO NOT ask VeltProvider location.' +
+          '\n  DO NOT ask sidebar position.' +
+          '\n  DO NOT generate a plan.' +
+          '\n  DO NOT use any defaults like "freestyle comments".' +
+          '\n  ' +
+          '\n  The tool runs CLI scaffolding + basic QA, returns TODO checklist. DONE.' +
+          '\n\n=========================================' +
+          '\nIF USER SELECTS SPECIFIC FEATURES:' +
+          '\n=========================================' +
+          '\n  Continue asking ONE question at a time:' +
+          '\n\n  STEP 5 - VELTPROVIDER LOCATION:' +
+          '\n    Ask: "Where should VeltProvider be installed? (app/layout.tsx recommended, or specify path)"' +
+          '\n    WAIT for response.' +
+          '\n\n  STEP 6 - SIDEBAR POSITION (only if comments selected):' +
+          '\n    Ask: "Sidebar header position? (top-left/top-right/bottom-left/bottom-right)"' +
+          '\n    WAIT for response.' +
+          '\n\n  STEP 7 - CALL TOOL (PLAN STAGE):' +
+          '\n    Call with mode="guided", stage="plan", and all collected params.' +
+          '\n    Tool returns implementation PLAN.' +
+          '\n\n  STEP 8 - SHOW PLAN, ASK APPROVAL:' +
+          '\n    Show plan, ask: "Would you like me to implement this?"' +
+          '\n    WAIT for approval.' +
+          '\n\n  STEP 9 - IF APPROVED:' +
+          '\n    Call with mode="guided", stage="apply", approved=true' +
+          '\n    Execute plan, run full QA.' +
+          '\n\n=========================================' +
+          '\nCRITICAL RULES:' +
+          '\n=========================================' +
+          '\n• ASK ONE QUESTION AT A TIME - never batch questions' +
+          '\n• NO DEFAULTS - user must answer each question explicitly' +
+          '\n• SKIP = CLI-only mode, NOT "use defaults"' +
+          '\n• SKIP = no features param, no commentType, no defaults' +
+          '\n• Guided mode requires TWO tool calls: plan then apply',
         inputSchema: {
           type: 'object',
           properties: {
@@ -208,25 +195,25 @@ export async function createServer() {
             },
             apiKey: {
               type: 'string',
-              description: 'Velt API Key from https://console.velt.dev - REQUIRED, ask user for this',
+              description: 'Velt API Key from https://console.velt.dev - REQUIRED',
             },
             authToken: {
               type: 'string',
-              description: 'Velt Auth Token from https://console.velt.dev - REQUIRED, ask user for this',
+              description: 'Velt Auth Token from https://console.velt.dev - REQUIRED',
             },
-            commentType: {
+            mode: {
               type: 'string',
-              enum: ['freestyle', 'popover', 'page', 'text', 'inline', 'tiptap', 'lexical', 'slate'],
-              description: 'Type of comments to install - ASK THE USER. Options: freestyle (click anywhere), popover (attach to elements), page (page-level), text (select text), inline (inline comments), tiptap (Tiptap editor integration), lexical (Lexical editor integration), slate (Slate.js editor integration)',
+              enum: ['guided', 'cli-only'],
+              description: 'Installation mode. Use "cli-only" if user typed SKIP at feature selection. Default: "guided"',
             },
-            headerPosition: {
+            stage: {
               type: 'string',
-              enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-              description: 'Position for the comments sidebar header - ASK THE USER (default: top-right)',
+              enum: ['plan', 'apply'],
+              description: 'For guided mode: "plan" generates the plan (first call), "apply" executes it (second call after approval). Default: "plan"',
             },
-            veltProviderLocation: {
-              type: 'string',
-              description: 'Where to install VeltProvider - ASK THE USER. Options: "app/layout.tsx" (root layout - RECOMMENDED), custom file path, or "auto-detect" to let AI decide. Default: "app/layout.tsx"',
+            approved: {
+              type: 'boolean',
+              description: 'Set to true when user has approved the plan and you are calling with stage="apply". Required for apply stage.',
             },
             features: {
               type: 'array',
@@ -234,19 +221,33 @@ export async function createServer() {
                 type: 'string',
                 enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt'],
               },
-              description: 'Features to install - Can include any combination of: comments, presence, cursors, notifications, recorder, crdt (collaborative real-time document editing)',
+              description: 'Features to install (guided mode only). Can include any combination.',
+            },
+            commentType: {
+              type: 'string',
+              enum: ['freestyle', 'popover', 'page', 'text', 'inline', 'tiptap', 'lexical', 'slate'],
+              description: 'Type of comments to install (if comments feature selected)',
             },
             crdtEditorType: {
               type: 'string',
               enum: ['tiptap', 'codemirror', 'blocknote'],
-              description: 'CRDT editor type - ONLY ask if "crdt" is in features array. Options: tiptap (Tiptap editor), codemirror (CodeMirror editor), blocknote (BlockNote editor)',
+              description: 'CRDT editor type (if crdt feature selected)',
+            },
+            headerPosition: {
+              type: 'string',
+              enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+              description: 'Position for the comments sidebar header. Default: "top-right"',
+            },
+            veltProviderLocation: {
+              type: 'string',
+              description: 'Where to install VeltProvider. Default: "app/layout.tsx"',
             },
             targetArea: {
               type: 'string',
-              description: 'Optional: User description of where they want comments (e.g., "header", "main content")',
+              description: 'Optional: User description of where they want comments',
             },
           },
-          required: ['projectPath', 'apiKey', 'authToken', 'commentType'],
+          required: ['projectPath', 'apiKey', 'authToken'],
         },
       },
       {
@@ -429,7 +430,7 @@ Configuration will be used to install Velt with freestyle comments.`,
         case 'install_velt_interactive': {
           // Validate required parameters
           if (!args?.projectPath) {
-            throw new Error('projectPath is required. Please ask the user: "Is this the correct directory: [show directory]?"');
+            throw new Error('projectPath is required. Please ask the user: "Is this the correct Next.js project directory: [path]?"');
           }
           if (!args?.apiKey) {
             throw new Error('apiKey is required. Please ask the user: "Please provide your Velt API Key (from https://console.velt.dev)"');
@@ -437,46 +438,90 @@ Configuration will be used to install Velt with freestyle comments.`,
           if (!args?.authToken) {
             throw new Error('authToken is required. Please ask the user: "Please provide your Velt Auth Token (from https://console.velt.dev)"');
           }
-          if (!args?.commentType) {
-            throw new Error('commentType is required. Please ask the user: "What type of comments would you like? (Freestyle or Popover)"');
-          }
 
-          // Use the new plan-based installer
-          const planResult = await installVeltWithPlan({
+          // Determine mode from args
+          const mode = args?.mode || 'guided';
+          const stage = args?.stage || 'plan';
+          const approved = args?.approved || false;
+
+          // Use the unified installer
+          const result = await installVeltUnified({
             projectPath: args.projectPath,
-            commentType: args.commentType,
-            headerPosition: args?.headerPosition || 'top-right',
-            targetArea: args?.targetArea || '',
             apiKey: args.apiKey,
             authToken: args.authToken,
+            mode,
+            stage,
+            approved,
             features: args?.features || ['comments'],
-            veltProviderLocation: args?.veltProviderLocation || 'app/page.tsx',
+            commentType: args?.commentType || 'freestyle',
             crdtEditorType: args?.crdtEditorType || null,
+            headerPosition: args?.headerPosition || 'top-right',
+            veltProviderLocation: args?.veltProviderLocation || 'app/layout.tsx',
             server,
           });
 
-          // Return the plan for the AI to execute
-          if (planResult.status === 'plan_generated' && planResult.plan) {
+          // Handle CLI-only mode result
+          if (result.mode === 'cli-only') {
             return {
               content: [
                 {
                   type: 'text',
-                  text: `Installation preparation complete! Here's your implementation plan:\n\n${planResult.plan}\n\n---\n\n🚨 CRITICAL IMPLEMENTATION RULES - READ BEFORE EXECUTING:\n\n**WHAT TO IMPLEMENT:**\n✅ ONLY implement features the user requested\n✅ Use .md documentation URLs for component patterns\n✅ Use CLI-generated: authentication, user setup, document setup\n\n**WHAT NOT TO IMPLEMENT:**\n❌ DO NOT use VeltTools component\n❌ DO NOT use ui-customization folder (unless user asks for customization)\n❌ DO NOT install components user didn't request (e.g., if user wants Comments, don't add Notifications)\n❌ DO NOT use CLI-generated component files as reference for implementation\n\n**IMPLEMENTATION SOURCE:**\n📄 Get component code from: https://docs.velt.dev/[feature]/setup.md\n📄 NOT from CLI-generated files in components/velt/*\n\n---\n\n🎯 NEXT STEPS:\n\n1. **PRESENT THIS PLAN TO THE USER** - Show them the plan above so they can review it\n2. **ASK FOR CONFIRMATION** - Ask: "Would you like me to execute this installation plan step-by-step?"\n3. **EXECUTE THE PLAN** - Once confirmed, follow each step to complete the installation\n4. **CHECK DEV CONSOLE** - After installation, check browser console for Velt errors/warnings\n5. **RESOLVE ERRORS** - If errors found, query Velt Docs MCP for solutions\n\n---\n\nIMPORTANT REMINDERS:\n• Replace all placeholders (YOUR_VELT_API_KEY, YOUR_VELT_AUTH_TOKEN) with actual values\n• ONLY implement what user requested - nothing more\n• Use .md docs for component implementation, NOT CLI files\n• Follow the plan's checklist sequentially\n• ALWAYS check DevTools Console (F12) for Velt errors at the end\n\n---\n\nCOMMON VELT ERRORS TO CHECK FOR:\n• "Please set document id to continue" → Query Velt Docs MCP: "How do I set document ID in Velt?"\n• "Velt API key not found" → Check that YOUR_VELT_API_KEY was replaced\n• "Failed to authenticate user" → Query Velt Docs MCP: "How to fix Velt authentication errors?"\n\n---\n\nAFTER INSTALLATION:\n1. 🔍 CHECK DEV CONSOLE: Open browser DevTools Console (F12) and look for Velt messages\n2. 📚 USE VELT DOCS MCP: Query Velt Docs MCP to resolve any errors or for customization\n3. 🎯 REFERENCE DOCS: All docs at https://docs.velt.dev with .md URLs at https://docs.velt.dev/[feature]/[page].md`,
+                  text: result.report || JSON.stringify(result, null, 2),
                 },
               ],
             };
-          } else {
-            // If plan generation failed, return error details
+          }
+
+          // Handle guided mode - plan stage
+          if (result.mode === 'guided' && result.stage === 'plan' && result.plan) {
             return {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify(planResult, null, 2),
+                  text: `# Installation Plan Generated\n\n${result.plan}\n\n---\n\n## 🎯 NEXT STEPS\n\n1. **PRESENT THIS PLAN TO THE USER** - Show them the plan above\n2. **ASK FOR APPROVAL** - Ask: "Would you like me to implement this plan?"\n3. **IF APPROVED** - Call this tool again with:\n   - mode: "guided"\n   - stage: "apply"\n   - approved: true\n4. **EXECUTE THE PLAN** - Make the file edits described in the plan\n5. **CHECK DEV CONSOLE** - After implementation, check browser console for Velt errors\n\n---\n\n⚠️ **CRITICAL**: Do NOT make any file changes until the user approves this plan.\n\n---\n\n**IMPLEMENTATION RULES:**\n• ONLY implement features the user requested\n• Use .md documentation URLs for component patterns\n• Use CLI-generated: authentication, user setup, document setup\n• DO NOT use VeltTools or ui-customization folder (unless requested)\n• DO NOT use CLI-generated component files as implementation reference`,
+                },
+              ],
+            };
+          }
+
+          // Handle guided mode - apply stage
+          if (result.mode === 'guided' && result.stage === 'apply') {
+            const validationSummary = result.validation
+              ? `\n\n## Validation Results\n${result.validation.checks.map(c => `- ${c.status === 'pass' ? '✅' : '❌'} ${c.name}: ${c.message}`).join('\n')}\n\n**Score:** ${result.validation.score}`
+              : '';
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `# Installation Apply Stage Complete\n\n${result.message}${validationSummary}\n\n## 🔍 Final Steps\n\n1. Start your development server: \`npm run dev\`\n2. Open browser DevTools Console (F12)\n3. Look for Velt messages and errors\n4. Test the installed features\n5. If errors occur, query Velt Docs MCP for solutions`,
+                },
+              ],
+            };
+          }
+
+          // Handle errors or unexpected states
+          if (result.status === 'error' || result.status === 'failed') {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
                 },
               ],
               isError: true,
             };
           }
+
+          // Default: return full result
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
         }
 
         case 'install_velt_freestyle':

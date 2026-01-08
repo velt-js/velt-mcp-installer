@@ -1,25 +1,302 @@
 /**
  * Validation Utilities
- * 
- * Validates Velt installation with basic checks
+ *
+ * Validates Velt installation with basic and full integration checks.
+ * Includes CLI method verification and "use client" directive checks.
  */
 
 import fs from 'fs';
 import path from 'path';
+import { getCliResolutionInfo } from './cli.js';
+import { isNextJsProject, detectProjectType, ProjectType } from './framework-detection.js';
+import { validateUseClientDirectives, scanAndFixUseClient } from './use-client.js';
 
 /**
- * Validates Velt installation
- * 
+ * Validates that directory is a valid Next.js project
+ *
+ * @param {string} projectPath - Path to project directory
+ * @returns {Object} Validation result { valid: boolean, error?: string }
+ */
+export function validateNextJsProject(projectPath) {
+  const packageJsonPath = path.join(projectPath, 'package.json');
+
+  // Check package.json exists
+  if (!fs.existsSync(packageJsonPath)) {
+    return {
+      valid: false,
+      error: `No package.json found at ${projectPath}. Is this a Node.js project?`,
+    };
+  }
+
+  // Parse package.json
+  let packageJson;
+  try {
+    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  } catch (err) {
+    return {
+      valid: false,
+      error: `Failed to parse package.json: ${err.message}`,
+    };
+  }
+
+  // Check for "next" dependency
+  const hasNext = !!(
+    packageJson.dependencies?.next ||
+    packageJson.devDependencies?.next
+  );
+
+  if (!hasNext) {
+    return {
+      valid: false,
+      error: '"next" not found in package.json dependencies. This tool requires a Next.js project.',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validates CLI resolution and execution method
+ *
+ * @returns {Object} CLI validation result
+ */
+export function validateCliResolution() {
+  const resolution = getCliResolutionInfo();
+
+  return {
+    name: 'Local CLI Resolution',
+    status: resolution.method === 'error' ? 'fail' : 'pass',
+    method: resolution.method,
+    message: resolution.method === 'error'
+      ? `CLI not found: ${resolution.error}`
+      : resolution.method === 'linked'
+        ? `Using npm-linked binary: ${resolution.path}`
+        : `Using direct execution: ${resolution.path}`,
+    path: resolution.path,
+  };
+}
+
+/**
+ * Basic CLI installation validation (for SKIP/CLI-only path)
+ *
+ * Only checks CLI scaffolding was successful, NOT integration.
+ * Checks: CLI files exist, @veltdev/react in package.json, .env.local
+ * Does NOT check: VeltProvider placement, VeltComments integration
+ *
  * @param {Object} params
  * @param {string} params.projectPath - Project path
+ * @param {Object} [params.cliResult] - CLI execution result (optional, for method reporting)
  * @returns {Promise<Object>} Validation result
  */
-export async function validateInstallation({ projectPath }) {
+export async function validateBasicCliInstall({ projectPath, cliResult = null }) {
+  const checks = [];
+  let passed = 0;
+
+  try {
+    // Check 0: CLI Resolution/Execution Method (new)
+    if (cliResult && cliResult.method) {
+      checks.push({
+        name: 'CLI Execution Method',
+        status: cliResult.method === 'error' ? 'fail' : 'pass',
+        message: cliResult.method === 'linked'
+          ? 'Used npm-linked binary (add-velt)'
+          : cliResult.method === 'direct'
+            ? 'Used direct execution (node bin/velt.js)'
+            : `CLI method: ${cliResult.method}`,
+      });
+
+      if (cliResult.method !== 'error') passed++;
+    } else {
+      // Validate CLI resolution if no result provided
+      const cliCheck = validateCliResolution();
+      checks.push({
+        name: cliCheck.name,
+        status: cliCheck.status,
+        message: cliCheck.message,
+      });
+
+      if (cliCheck.status === 'pass') passed++;
+    }
+
+    // Check 1: @veltdev/react in package.json
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      const hasVeltPkg = !!(
+        packageJson.dependencies?.['@veltdev/react'] ||
+        packageJson.devDependencies?.['@veltdev/react']
+      );
+
+      checks.push({
+        name: '@veltdev/react package',
+        status: hasVeltPkg ? 'pass' : 'fail',
+        message: hasVeltPkg
+          ? 'Package found in package.json'
+          : 'Package not found - run: npm install @veltdev/react',
+      });
+
+      if (hasVeltPkg) passed++;
+    } else {
+      checks.push({
+        name: '@veltdev/react package',
+        status: 'fail',
+        message: 'package.json not found',
+      });
+    }
+
+    // Check 2-4: CLI scaffold files exist
+    // Check both standard and src/ paths
+    const scaffoldFiles = [
+      {
+        name: 'VeltInitializeUser.tsx',
+        paths: [
+          'components/velt/VeltInitializeUser.tsx',
+          'src/components/velt/VeltInitializeUser.tsx',
+        ],
+      },
+      {
+        name: 'VeltInitializeDocument.tsx',
+        paths: [
+          'components/velt/VeltInitializeDocument.tsx',
+          'src/components/velt/VeltInitializeDocument.tsx',
+        ],
+      },
+      {
+        name: 'VeltCollaboration.tsx',
+        paths: [
+          'components/velt/VeltCollaboration.tsx',
+          'src/components/velt/VeltCollaboration.tsx',
+        ],
+      },
+    ];
+
+    for (const file of scaffoldFiles) {
+      let exists = false;
+      let foundPath = '';
+
+      for (const filePath of file.paths) {
+        const fullPath = path.join(projectPath, filePath);
+        if (fs.existsSync(fullPath)) {
+          exists = true;
+          foundPath = filePath;
+          break;
+        }
+      }
+
+      checks.push({
+        name: `CLI file: ${file.name}`,
+        status: exists ? 'pass' : 'fail',
+        message: exists ? `Found at ${foundPath}` : 'File not created by CLI',
+      });
+
+      if (exists) passed++;
+    }
+
+    // Check 5: .env.local exists (or .env)
+    const envLocalPath = path.join(projectPath, '.env.local');
+    const envPath = path.join(projectPath, '.env');
+    const envExists = fs.existsSync(envLocalPath) || fs.existsSync(envPath);
+
+    checks.push({
+      name: 'Environment file',
+      status: envExists ? 'pass' : 'warning',
+      message: envExists
+        ? 'Environment file exists'
+        : 'No .env.local or .env found - you may need to create one with NEXT_PUBLIC_VELT_API_KEY',
+    });
+
+    if (envExists) passed++;
+
+    // Check 6: If .env.local exists, check for API key
+    if (fs.existsSync(envLocalPath)) {
+      const envContent = fs.readFileSync(envLocalPath, 'utf-8');
+      const hasApiKey = envContent.includes('NEXT_PUBLIC_VELT_API_KEY') ||
+                        envContent.includes('VELT_API_KEY');
+
+      checks.push({
+        name: 'API key in environment',
+        status: hasApiKey ? 'pass' : 'warning',
+        message: hasApiKey
+          ? 'Velt API key found in environment file'
+          : 'No Velt API key found in .env.local - add NEXT_PUBLIC_VELT_API_KEY',
+      });
+
+      if (hasApiKey) passed++;
+    }
+
+    // Check 7: "use client" directives (Next.js only)
+    const projectType = detectProjectType(projectPath);
+    if (projectType.projectType === ProjectType.NEXTJS) {
+      const useClientValidation = validateUseClientDirectives(projectPath);
+
+      for (const check of useClientValidation.checks) {
+        checks.push(check);
+        if (check.status === 'pass') passed++;
+      }
+    }
+
+    return {
+      checks,
+      passed,
+      total: checks.length,
+      score: `${passed}/${checks.length}`,
+      status: passed === checks.length
+        ? 'excellent'
+        : passed >= checks.length * 0.6
+          ? 'good'
+          : 'needs_attention',
+    };
+  } catch (error) {
+    return {
+      checks,
+      passed,
+      total: checks.length,
+      score: `${passed}/${checks.length}`,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Full integration validation (for guided path after apply)
+ *
+ * Checks everything in basic validation PLUS integration:
+ * VeltProvider in layout, VeltComments in page, etc.
+ *
+ * @param {Object} params
+ * @param {string} params.projectPath - Project path
+ * @param {Object} [params.cliResult] - CLI execution result (optional)
+ * @returns {Promise<Object>} Validation result
+ */
+export async function validateInstallation({ projectPath, cliResult = null }) {
   const checks = [];
   let passed = 0;
   let total = 0;
 
   try {
+    // Check 0: CLI Execution Method (new)
+    total++;
+    if (cliResult && cliResult.method) {
+      checks.push({
+        name: 'CLI Execution',
+        status: cliResult.success ? 'pass' : 'warning',
+        message: cliResult.success
+          ? `CLI succeeded via ${cliResult.method === 'linked' ? 'npm link' : 'direct execution'}`
+          : `CLI had issues (${cliResult.method}) but may have created files`,
+      });
+
+      if (cliResult.success || cliResult.method !== 'error') passed++;
+    } else {
+      const cliCheck = validateCliResolution();
+      checks.push({
+        name: 'CLI Resolution',
+        status: cliCheck.status,
+        message: cliCheck.message,
+      });
+
+      if (cliCheck.status === 'pass') passed++;
+    }
+
     // Check 1: package.json has @veltdev/react
     total++;
     const packageJsonPath = path.join(projectPath, 'package.json');
@@ -29,7 +306,7 @@ export async function validateInstallation({ projectPath }) {
         packageJson.dependencies?.['@veltdev/react'] ||
         packageJson.devDependencies?.['@veltdev/react']
       );
-      
+
       checks.push({
         name: 'Velt package installed',
         status: hasVelt ? 'pass' : 'fail',
@@ -37,7 +314,7 @@ export async function validateInstallation({ projectPath }) {
           ? '@veltdev/react found in package.json'
           : '@veltdev/react not found in package.json',
       });
-      
+
       if (hasVelt) passed++;
     } else {
       checks.push({
@@ -53,7 +330,7 @@ export async function validateInstallation({ projectPath }) {
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf-8');
       const hasApiKey = envContent.includes('NEXT_PUBLIC_VELT_API_KEY');
-      
+
       checks.push({
         name: 'Environment configured',
         status: hasApiKey ? 'pass' : 'fail',
@@ -61,7 +338,7 @@ export async function validateInstallation({ projectPath }) {
           ? 'NEXT_PUBLIC_VELT_API_KEY found in .env.local'
           : 'NEXT_PUBLIC_VELT_API_KEY not found in .env.local',
       });
-      
+
       if (hasApiKey) passed++;
     } else {
       checks.push({
@@ -79,10 +356,10 @@ export async function validateInstallation({ projectPath }) {
       'src/app/layout.tsx',
       'src/app/layout.js',
     ];
-    
+
     let layoutFound = false;
     let hasVeltProvider = false;
-    
+
     for (const layoutPath of layoutPaths) {
       const fullPath = path.join(projectPath, layoutPath);
       if (fs.existsSync(fullPath)) {
@@ -113,10 +390,10 @@ export async function validateInstallation({ projectPath }) {
       'src/app/page.tsx',
       'src/app/page.js',
     ];
-    
+
     let pageFound = false;
     let hasVeltComments = false;
-    
+
     for (const pagePath of pagePaths) {
       const fullPath = path.join(projectPath, pagePath);
       if (fs.existsSync(fullPath)) {
@@ -142,7 +419,7 @@ export async function validateInstallation({ projectPath }) {
     // Check 5: VeltCommentsSidebar in layout
     total++;
     let hasVeltSidebar = false;
-    
+
     if (layoutFound) {
       for (const layoutPath of layoutPaths) {
         const fullPath = path.join(projectPath, layoutPath);
@@ -166,6 +443,18 @@ export async function validateInstallation({ projectPath }) {
 
     if (hasVeltSidebar) passed++;
 
+    // Check 6: "use client" directives (Next.js only)
+    const projectType = detectProjectType(projectPath);
+    if (projectType.projectType === ProjectType.NEXTJS) {
+      const useClientValidation = validateUseClientDirectives(projectPath);
+
+      for (const check of useClientValidation.checks) {
+        total++;
+        checks.push(check);
+        if (check.status === 'pass') passed++;
+      }
+    }
+
     return {
       checks,
       passed,
@@ -184,3 +473,32 @@ export async function validateInstallation({ projectPath }) {
   }
 }
 
+/**
+ * Applies "use client" fixes to files that need them (Next.js only)
+ *
+ * @param {string} projectPath - Project path
+ * @returns {Object} Fix results
+ */
+export function applyUseClientFixes(projectPath) {
+  const projectType = detectProjectType(projectPath);
+
+  if (projectType.projectType !== ProjectType.NEXTJS) {
+    return {
+      skipped: true,
+      reason: `Project type is ${projectType.projectType}, not Next.js`,
+    };
+  }
+
+  return scanAndFixUseClient({
+    projectPath,
+    fix: true,
+  });
+}
+
+export default {
+  validateNextJsProject,
+  validateCliResolution,
+  validateBasicCliInstall,
+  validateInstallation,
+  applyUseClientFixes,
+};

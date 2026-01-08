@@ -1,6 +1,9 @@
 /**
  * Interactive Velt Installer
  *
+ * @deprecated Use unified-installer.js instead. This module is kept for backward compatibility.
+ * The unified installer provides both guided and CLI-only modes with better UX.
+ *
  * Provides a step-by-step interactive installation workflow with user prompts.
  */
 

@@ -341,6 +341,12 @@ Run checks mirroring the rules in this document:
 
 ### API Key Configuration
 
+**Recommended Env Var Names (FireHydrant Pattern):**
+```
+VELT_PUBLIC_API_KEY=your_api_key_here
+VELT_AUTH_TOKEN=your_auth_token_here
+```
+
 **Velt CLI Approach:**
 - CLI hardcodes API keys directly in source files (not .env)
 - `app/page.tsx`: `const NEXT_PUBLIC_VELT_API_KEY = "YOUR_VELT_API_KEY";`
@@ -355,6 +361,449 @@ Run checks mirroring the rules in this document:
    - CLI can optionally create `.env.local` with `--env` flag
    - But keys are primarily hardcoded in source files
    - Integration script can skip .env.local unless specifically requested
+
+---
+
+## JWT Token Generation (Production Pattern)
+
+### Server-Side Token Generation (Recommended)
+
+**Why Server-Side:** JWT tokens should be generated server-side to keep the auth token secure. The auth token (`VELT_AUTH_TOKEN`) should NEVER be exposed to the client.
+
+**Velt Token API Endpoint:**
+```
+POST https://api.velt.dev/v2/auth/token/get
+```
+
+**Required Headers:**
+```
+x-velt-api-key: YOUR_VELT_PUBLIC_API_KEY
+x-velt-auth-token: YOUR_VELT_AUTH_TOKEN
+```
+
+**Request Body:**
+```json
+{
+  "data": {
+    "userId": "user-123",
+    "userProperties": {
+      "organizationId": "org-456",
+      "email": "user@example.com"
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "result": {
+    "data": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  }
+}
+```
+
+### Next.js API Route Implementation
+
+**Location:** `app/api/velt/token/route.ts`
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+
+// [Velt] JWT Token Generation API Route
+// This endpoint generates Velt authentication tokens for users.
+// SECURITY: Keep VELT_AUTH_TOKEN server-side only - never expose to client.
+
+const VELT_API_KEY = process.env.VELT_PUBLIC_API_KEY;
+const VELT_AUTH_TOKEN = process.env.VELT_AUTH_TOKEN;
+
+export async function POST(request: NextRequest) {
+  try {
+    // [Velt] TODO: Validate user session before generating token
+    // Example: const session = await getServerSession(authOptions);
+    // if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await request.json();
+    const { userId, organizationId, email } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    if (!VELT_API_KEY || !VELT_AUTH_TOKEN) {
+      console.error('[Velt] Missing VELT_PUBLIC_API_KEY or VELT_AUTH_TOKEN');
+      return NextResponse.json({ error: 'Velt credentials not configured' }, { status: 500 });
+    }
+
+    // [Velt] Call Velt Token API
+    const response = await fetch('https://api.velt.dev/v2/auth/token/get', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-velt-api-key': VELT_API_KEY,
+        'x-velt-auth-token': VELT_AUTH_TOKEN,
+      },
+      body: JSON.stringify({
+        data: {
+          userId,
+          userProperties: {
+            organizationId: organizationId || 'default-org',
+            email: email || '',
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Velt] Token API error:', errorText);
+      return NextResponse.json({ error: 'Failed to generate token' }, { status: 500 });
+    }
+
+    const json = await response.json();
+    const token = json?.result?.data?.token;
+
+    if (!token) {
+      console.error('[Velt] No token in response:', json);
+      return NextResponse.json({ error: 'Invalid token response' }, { status: 500 });
+    }
+
+    return NextResponse.json({ token });
+  } catch (error) {
+    console.error('[Velt] Token generation error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+### Client-Side Token Fetching (VeltInitializeUser Pattern)
+
+**Location:** `components/velt/VeltInitializeUser.tsx`
+
+```typescript
+'use client';
+
+import { useCallback, useMemo } from 'react';
+import { VeltAuthProvider, VeltUser } from '@veltdev/react';
+import { useAppUser } from '@/app/userAuth/useAppUser';
+
+// [Velt] Hook to create auth provider with backend token generation
+export function useVeltAuthProvider() {
+  const { user } = useAppUser();
+
+  // [Velt] Token generation callback - calls backend API
+  const generateToken = useCallback(async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/velt/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.userId,
+          organizationId: user?.organizationId,
+          email: user?.email,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Token fetch failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.token;
+    } catch (error) {
+      console.error('[Velt] Token generation failed:', error);
+      throw error;
+    }
+  }, [user]);
+
+  // [Velt] Create auth provider object
+  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
+    if (!user?.userId) {
+      return undefined;
+    }
+
+    const veltUser: VeltUser = {
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      organizationId: user.organizationId,
+    };
+
+    return {
+      user: veltUser,
+      generateToken,
+      retryConfig: { retryCount: 3, retryDelay: 1000 },
+    };
+  }, [user, generateToken]);
+
+  return { authProvider };
+}
+```
+
+---
+
+## VeltInitializeDocument Pattern
+
+### Context-Based Document ID (Recommended)
+
+**Why Context-Based:** The document ID should come from your app's context/state (e.g., page ID, project ID, retrospective ID). This ensures users collaborating on the same resource share the same Velt document.
+
+**Location:** `components/velt/VeltInitializeDocument.tsx`
+
+```typescript
+'use client';
+
+import { useEffect } from 'react';
+import { useSetDocuments } from '@veltdev/react';
+
+// [Velt] Import your app's context that provides the document/resource ID
+// This could be from URL params, React context, or any state management
+import { useYourAppContext } from '@/contexts/YourAppContext';
+
+export default function VeltInitializeDocument() {
+  // [Velt] Get document ID from your app's context
+  // Example contexts: project, page, retrospective, document, etc.
+  const appContext = useYourAppContext();
+  const documentId = appContext?.resourceId; // e.g., retrospective.id, project.id
+
+  const { setDocuments } = useSetDocuments();
+
+  useEffect(() => {
+    if (!documentId) return;
+
+    // [Velt] Set the document for collaboration
+    // All users with the same documentId will collaborate together
+    setDocuments([
+      {
+        id: documentId,
+        // Optional: Add metadata for document
+        // metadata: { name: 'My Document', type: 'retrospective' }
+      },
+    ]);
+  }, [setDocuments, documentId]);
+
+  return null;
+}
+```
+
+### Document ID Best Practices
+
+1. **Use stable IDs**: Document IDs should be stable across sessions (e.g., database IDs, UUIDs)
+2. **Unique per collaboration scope**: Different pages/resources should have different document IDs
+3. **Include organization**: For multi-tenant apps, include org ID in document context (via user's organizationId)
+
+---
+
+## Velt Tiptap CRDT Editor Setup (Production Pattern)
+
+### Overview
+
+Velt Tiptap CRDT enables real-time collaborative editing in Tiptap editors. This pattern is based on the FireHydrant production implementation.
+
+### Key Concepts
+
+| Concept | Description | Example |
+|---------|-------------|---------|
+| **documentId** | Top-level scope for all collaboration | `retrospective-123` |
+| **editorId** | Unique ID per editor instance within a document | `retrospective-123/question-456` |
+| **initialContent** | Fallback content when CRDT document is empty | Backend-stored content |
+
+### ID Mapping Pattern
+
+```typescript
+// [Velt] ID Mapping for Tiptap CRDT
+// - documentId: Set via VeltInitializeDocument (one per page/resource)
+// - editorId: Unique per editor instance (allows multiple editors per document)
+
+// Example: Multiple editors in a retrospective
+const retrospectiveId = 'retro-123';      // From context
+const fieldId = 'question-456';            // Field being edited
+
+// Combined editorId format
+const editorId = `${retrospectiveId}/${fieldId}`;
+// Result: "retro-123/question-456"
+```
+
+### Complete TipTapCollabEditor Implementation
+
+```typescript
+'use client';
+
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useVeltTiptapCrdtExtension } from '@veltdev/tiptap-crdt-react';
+import { useServerConnectionStateChangeHandler } from '@veltdev/react';
+
+interface TipTapCollabEditorProps {
+  // [Velt] CRDT requires both document-level and editor-level IDs
+  documentId: string;  // Top-level scope (from VeltInitializeDocument)
+  fieldId: string;     // Unique field/question ID within the document
+
+  // [Velt] Backend content for initial seeding
+  backendfallbackContent?: any;
+
+  // [Velt] Callback when content changes (for saving to backend)
+  onUpdate?: (params: { fieldId: string; value: any }) => void;
+}
+
+export function TipTapCollabEditor({
+  documentId,
+  fieldId,
+  backendfallbackContent,
+  onUpdate,
+}: TipTapCollabEditorProps) {
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSeededContentRef = useRef(false);
+  const isEditorReadyRef = useRef(false);
+
+  // [Velt] Combine documentId and fieldId for unique editorId
+  const editorId = `${documentId}/${fieldId}`;
+
+  // [Velt] Format initial content for CRDT
+  const veltInitialContent = useMemo(() => {
+    if (!backendfallbackContent) return undefined;
+    if (Array.isArray(backendfallbackContent)) {
+      return { type: 'doc', content: backendfallbackContent };
+    }
+    return backendfallbackContent;
+  }, [backendfallbackContent]);
+
+  // [Velt] Initialize CRDT extension
+  const { VeltCrdt, isLoading } = useVeltTiptapCrdtExtension({
+    editorId,
+    initialContent: veltInitialContent,
+  });
+
+  // [Velt] Monitor server connection state
+  const serverConnectionState = useServerConnectionStateChangeHandler();
+
+  // [Velt] Helper to check if editor is empty
+  const isEditorEmpty = (editor: any) => {
+    if (!editor) return true;
+    const json = editor.getJSON();
+    if (!json.content || json.content.length === 0) return true;
+    if (json.content.length === 1) {
+      const firstNode = json.content[0];
+      if (firstNode.type === 'paragraph' && (!firstNode.content || firstNode.content.length === 0)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // [Velt] Helper to check if backend has content
+  const hasBackendContent = (content: any) => {
+    if (!content) return false;
+    if (Array.isArray(content) && content.length === 0) return false;
+    return true;
+  };
+
+  // [Velt] Configure Tiptap editor with CRDT
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        // [Velt] CRITICAL: Disable undo/redo - CRDT handles this
+        undoRedo: false,
+      }),
+      // [Velt] Add CRDT extension when available
+      ...(VeltCrdt ? [VeltCrdt] : []),
+    ],
+    // [Velt] Don't set initial content - let CRDT handle it
+    // content: initialContent, // COMMENTED OUT - CRDT manages content
+    immediatelyRender: false,
+    onUpdate: ({ editor, transaction }) => {
+      // [Velt] Detect remote syncs - don't save these to backend
+      const isRemoteSync =
+        transaction.getMeta('y-sync$') ||
+        transaction.getMeta('remote') ||
+        transaction.getMeta('velt-sync') ||
+        transaction.getMeta('isRemote');
+
+      if (isRemoteSync) return;
+
+      // [Velt] Debounced auto-save (2 seconds)
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      if (transaction.docChanged && isEditorReadyRef.current) {
+        saveTimeoutRef.current = setTimeout(() => {
+          const content = editor.getJSON()?.content || [];
+          onUpdate?.({ fieldId, value: content });
+        }, 2000); // 2-second debounce
+      }
+    },
+  }, [VeltCrdt]);
+
+  // [Velt] Seed content from backend when CRDT doc is empty
+  useEffect(() => {
+    if (
+      editor &&
+      !isLoading &&
+      serverConnectionState === 'online' &&
+      !hasSeededContentRef.current &&
+      isEditorEmpty(editor) &&
+      hasBackendContent(backendfallbackContent)
+    ) {
+      hasSeededContentRef.current = true;
+      // Small delay to ensure CRDT is ready
+      setTimeout(() => {
+        if (editor && !editor.isDestroyed) {
+          editor.commands.setContent(backendfallbackContent);
+          isEditorReadyRef.current = true;
+        }
+      }, 100);
+    } else if (editor && !isLoading && serverConnectionState === 'online') {
+      isEditorReadyRef.current = true;
+    }
+  }, [editor, isLoading, serverConnectionState, backendfallbackContent]);
+
+  // [Velt] Monitor connection state with timeout
+  useEffect(() => {
+    if (serverConnectionState === 'online') return;
+
+    const timeout = setTimeout(() => {
+      if (serverConnectionState !== 'online') {
+        console.warn('[Velt] CRDT connection timeout - check network');
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [serverConnectionState]);
+
+  // [Velt] Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // [Velt] Show loading state while CRDT initializes
+  if (isLoading) {
+    return <div className="animate-pulse bg-gray-100 h-32 rounded" />;
+  }
+
+  return (
+    <div className="tiptap-collab-editor">
+      <EditorContent editor={editor} />
+    </div>
+  );
+}
+```
+
+### Key Implementation Notes
+
+1. **Disable Undo/Redo**: Use `StarterKit.configure({ undoRedo: false })` - CRDT handles history
+2. **Don't Set Initial Content**: Comment out `content` in useEditor - CRDT manages it
+3. **Detect Remote Syncs**: Check transaction meta for `y-sync$`, `remote`, `velt-sync`, `isRemote`
+4. **Debounce Auto-Save**: Use 2-second debounce to avoid excessive backend saves
+5. **Seed from Backend**: When CRDT doc is empty, seed from backend content once
+6. **Monitor Connection**: Use `useServerConnectionStateChangeHandler()` for connection state
 
 ---
 

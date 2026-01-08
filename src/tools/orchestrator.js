@@ -1,6 +1,9 @@
 /**
  * Velt Installation Orchestrator
- * 
+ *
+ * @deprecated Use unified-installer.js instead. This module is kept for backward compatibility.
+ * The unified installer provides both guided and CLI-only modes with better UX.
+ *
  * Single orchestrator tool that handles the complete Velt installation workflow
  * with guaranteed sequential execution.
  */

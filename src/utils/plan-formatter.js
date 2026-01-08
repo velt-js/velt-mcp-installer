@@ -313,116 +313,131 @@ export function useAppUser() {
     ],
   });
 
-  // Step 4: Comment out JWT token generation (SECURITY)
+  // Step 4: Implement JWT token generation (Production Pattern)
   steps.push({
-    title: `Comment out JWT token generation in auth provider (SECURITY)`,
-    details: `Find the auth provider or token generation code (typically in a hook like \`useVeltAuthProvider\` or API route) and comment out the JWT token generation. Leave the structure visible with [Velt] comments for context.
+    title: `Implement JWT token generation via Velt API (Production Pattern)`,
+    details: `The CLI generates a placeholder JWT route. Replace it with the production pattern that calls Velt's token API.
 
-**Why comment it out:**
-- JWT token generation requires a secure secret key
-- The CLI-generated code uses example/placeholder secrets
-- Production apps should implement their own secure token generation
-- Prevents accidentally deploying with insecure example secrets
+**Production Pattern (FireHydrant Reference):**
+Server-side API calls Velt's token endpoint to generate secure JWT tokens.
 
-**What to keep:**
-- User data retrieval (\`useAppUser\` or similar)
-- Auth provider object structure
-- Retry configuration
+**Velt Token API:**
+\`\`\`
+POST https://api.velt.dev/v2/auth/token/get
+Headers:
+  x-velt-api-key: YOUR_VELT_PUBLIC_API_KEY
+  x-velt-auth-token: YOUR_VELT_AUTH_TOKEN (keep secret!)
+Body:
+  { "data": { "userId": "...", "userProperties": { "organizationId": "...", "email": "..." } } }
+Response:
+  { "result": { "data": { "token": "eyJ..." } } }
+\`\`\`
 
-**What to comment out:**
-- \`generateToken\` function implementation
-- Any JWT signing code
-- Example secret keys
+**Environment Variables to Set:**
+\`\`\`
+VELT_PUBLIC_API_KEY=your_api_key_here
+VELT_AUTH_TOKEN=your_auth_token_here  # NEVER expose to client!
+\`\`\`
 
-**Add clear [Velt] comments to explain:**
-- What each part does
-- Why token generation is commented out
-- What the developer needs to implement`,
+**Security Requirements:**
+- Keep VELT_AUTH_TOKEN server-side only (never expose to client)
+- Validate user session before generating tokens
+- The auth token should only be used in API routes, not client components`,
     codeExamples: [
       {
-        description: 'Example: Comment out generateToken in auth provider hook',
+        description: 'Production API Route: app/api/velt/token/route.ts',
         language: 'typescript',
-        code: `export function useVeltAuthProvider() {
-  // [Velt] Get your app's current authenticated user to authenticate with Velt.
-  const { user } = useAppUser();
+        code: `import { NextRequest, NextResponse } from 'next/server';
 
-  // [Velt] Create auth provider object to pass to VeltProvider
-  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
-    if (!user) return undefined;
-    return {
-      user,
-      retryConfig: { retryCount: 3, retryDelay: 1000 },
+// [Velt] JWT Token Generation - Production Pattern
+const VELT_API_KEY = process.env.VELT_PUBLIC_API_KEY;
+const VELT_AUTH_TOKEN = process.env.VELT_AUTH_TOKEN;
 
-      // [Velt] TODO: Implement secure token generation
-      // SECURITY: The example token generation has been commented out because:
-      // 1. It uses an example secret key that is NOT secure
-      // 2. You should implement your own backend token generation
-      // 3. Your backend should use a secure secret stored in environment variables
-      //
-      // To implement:
-      // 1. Create a backend API endpoint that generates JWT tokens
-      // 2. Use a secure secret key from environment variables
-      // 3. Validate the user's session before generating tokens
-      // 4. Set appropriate token expiration (e.g., 24 hours)
-      //
-      // Example implementation:
-      // generateToken: async () => {
-      //   return await getVeltJwtFromBackend({
-      //     userId: user.userId as string,
-      //     organizationId: user.organizationId as string,
-      //     email: user.email,
-      //   });
-      // },
-    };
-  }, [user]);
+export async function POST(request: NextRequest) {
+  try {
+    // [Velt] TODO: Add user session validation here
+    // const session = await getServerSession(authOptions);
+    // if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  return { authProvider };
+    const body = await request.json();
+    const { userId, organizationId, email } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    if (!VELT_API_KEY || !VELT_AUTH_TOKEN) {
+      console.error('[Velt] Missing VELT_PUBLIC_API_KEY or VELT_AUTH_TOKEN');
+      return NextResponse.json({ error: 'Velt credentials not configured' }, { status: 500 });
+    }
+
+    // [Velt] Call Velt Token API
+    const response = await fetch('https://api.velt.dev/v2/auth/token/get', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-velt-api-key': VELT_API_KEY,
+        'x-velt-auth-token': VELT_AUTH_TOKEN,
+      },
+      body: JSON.stringify({
+        data: {
+          userId,
+          userProperties: { organizationId: organizationId || 'default-org', email: email || '' },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Velt] Token API error:', await response.text());
+      return NextResponse.json({ error: 'Failed to generate token' }, { status: 500 });
+    }
+
+    const json = await response.json();
+    const token = json?.result?.data?.token;
+    if (!token) {
+      return NextResponse.json({ error: 'Invalid token response' }, { status: 500 });
+    }
+
+    return NextResponse.json({ token });
+  } catch (error) {
+    console.error('[Velt] Token generation error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }`,
       },
       {
-        description: 'Example: Comment out JWT generation in API route',
+        description: 'Client-side auth provider with backend token fetch',
         language: 'typescript',
-        code: `// app/api/velt/token/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+        code: `// In VeltInitializeUser.tsx - useVeltAuthProvider hook
+export function useVeltAuthProvider() {
+  const { user } = useAppUser();
 
-export async function POST(request: NextRequest) {
-  // [Velt] TODO: Implement secure token generation
-  // SECURITY: JWT generation has been commented out because:
-  // 1. The example uses a hardcoded secret key
-  // 2. There's no user session validation
-  // 3. Production apps need proper authentication
-  //
-  // Before uncommenting and using this:
-  // 1. Add user session validation
-  // 2. Use secure secret from environment variables
-  // 3. Implement token expiration
-  // 4. Never expose your secret key in client code
-  //
-  // Example secure implementation:
-  // const session = await getServerSession(authOptions);
-  // if (!session) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-  //
-  // const secret = process.env.JWT_SECRET;
-  // if (!secret) {
-  //   throw new Error('JWT_SECRET not configured');
-  // }
-  //
-  // const token = jwt.sign(
-  //   {
-  //     userId: session.user.id,
-  //     organizationId: session.user.orgId,
-  //   },
-  //   secret,
-  //   { expiresIn: '24h' }
-  // );
-  //
-  // return NextResponse.json({ token });
+  // [Velt] Token generation - calls backend API
+  const generateToken = useCallback(async (): Promise<string> => {
+    const response = await fetch('/api/velt/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user?.userId,
+        organizationId: user?.organizationId,
+        email: user?.email,
+      }),
+    });
+    if (!response.ok) throw new Error('Token fetch failed');
+    const data = await response.json();
+    return data.token;
+  }, [user]);
 
-  return NextResponse.json({
-    error: 'Token generation not implemented. See TODO comments above.'
-  }, { status: 501 });
+  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
+    if (!user?.userId) return undefined;
+    return {
+      user: { userId: user.userId, name: user.name, email: user.email, organizationId: user.organizationId },
+      generateToken,
+      retryConfig: { retryCount: 3, retryDelay: 1000 },
+    };
+  }, [user, generateToken]);
+
+  return { authProvider };
 }`,
       },
     ],
@@ -751,73 +766,145 @@ ${crdtEditorType === 'tiptap' ? `- ✅ **Required Packages:**
   - yjs (CRDT framework)
   - y-prosemirror (ProseMirror bindings for Yjs)
 
+⚠️ **CRITICAL: ID MAPPING PATTERN (FireHydrant Pattern):**
+- **documentId**: Set via VeltInitializeDocument - one per page/resource (e.g., \`retrospective-123\`)
+- **editorId**: Unique per editor instance - use format \`\${documentId}/\${fieldId}\` (e.g., \`retrospective-123/question-456\`)
+- **Why**: This allows multiple editors per document, each with independent CRDT state
+
 ⚠️ **CRITICAL STARTERKIT CONFIGURATION:**
 - ❌ **WRONG**: \`StarterKit.configure({ history: false })\` - DO NOT USE "history"
-- ✅ **CORRECT**: \`StarterKit.configure({ undoRedo: false, heading: false })\`
-- **Why**: StarterKit doesn't have a "history" option. Use "undoRedo" instead.
+- ✅ **CORRECT**: \`StarterKit.configure({ undoRedo: false })\`
+- **Why**: StarterKit doesn't have a "history" option. Use "undoRedo" instead. CRDT handles undo/redo.
 
 ⚠️ **CRITICAL INITIAL CONTENT:**
 - ❌ **WRONG**: \`content: initialContent\` in useEditor
 - ✅ **CORRECT**: \`// content: initialContent\` (comment it out)
-- **Why**: Let CRDT handle initial content loading
+- **Why**: Let CRDT handle initial content loading. Seed from backend only when CRDT doc is empty.
 
-⚠️ **CRITICAL COMMENTS EXTENSION:**
+⚠️ **CRITICAL AUTO-SAVE PATTERN (FireHydrant Pattern):**
+- ✅ Use 2-second debounce to avoid excessive backend saves
+- ✅ Detect remote syncs: check \`transaction.getMeta('y-sync$')\`, \`transaction.getMeta('remote')\`, \`transaction.getMeta('velt-sync')\`, \`transaction.getMeta('isRemote')\`
+- ✅ Skip saving for remote syncs (these are changes from other users)
+- ✅ Only save local changes to backend
+
+⚠️ **CRITICAL BACKEND CONTENT SEEDING:**
+- ✅ When CRDT doc is empty AND backend has content, seed once
+- ✅ Use \`useServerConnectionStateChangeHandler()\` to check connection is 'online' before seeding
+- ✅ Track seeding state with ref to avoid double-seeding
+
+⚠️ **CRITICAL COMMENTS EXTENSION (if adding comments to CRDT editor):**
 - ❌ **WRONG**: \`TiptapVeltComments.configure({ editorId, HTMLAttributes })\`
 - ✅ **CORRECT**: \`TiptapVeltComments\` (no .configure())
 - **Why**: The extension works without configuration
 
-⚠️ **CRITICAL ADD COMMENT FUNCTION:**
-- ✅ **REQUIRED**: Import and use \`addComment\` from '@veltdev/tiptap-velt-comments'
-- ✅ **REQUIRED**: Create wrapper function and pass to BubbleMenuToolbar
-- **Example**:
+**Tiptap CRDT Pattern (PRODUCTION CODE - FireHydrant Pattern):**
 \`\`\`tsx
-const addTiptapVeltComment = () => {
-  if (editor) {
-    addComment({ editor })
-  }
-}
-\`\`\`
+import { useEffect, useRef, useMemo } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useVeltTiptapCrdtExtension } from '@veltdev/tiptap-crdt-react';
+import { useServerConnectionStateChangeHandler } from '@veltdev/react';
 
-**Tiptap CRDT Pattern (EXACT CODE TO USE):**
-\`\`\`tsx
-import { useVeltTiptapCrdtExtension } from '@veltdev/tiptap-crdt-react'
-import { TiptapVeltComments, addComment, renderComments } from '@veltdev/tiptap-velt-comments'
-import { useCommentAnnotations } from '@veltdev/react'
-import { useCurrentDocument } from '@/app/document/useCurrentDocument'
-
-const { documentId } = useCurrentDocument()
-const { VeltCrdt } = useVeltTiptapCrdtExtension({
-  editorId: documentId || 'default-editor',
-  initialContent: yourInitialContent,
-})
-
-const commentAnnotations = useCommentAnnotations()
-
-const editor = useEditor({
-  extensions: [
-    StarterKit.configure({
-      undoRedo: false,  // CRITICAL: use undoRedo, NOT history
-      heading: false,
-    }),
-    // ... other extensions
-    TiptapVeltComments,  // CRITICAL: no .configure()
-    ...(VeltCrdt ? [VeltCrdt] : []),
-  ],
-  // content: initialContent,  // CRITICAL: comment this out
-  immediatelyRender: false,
-}, [VeltCrdt, bubbleMenuElement])
-
-const addTiptapVeltComment = () => {
-  if (editor) {
-    addComment({ editor })
-  }
+interface TipTapCollabEditorProps {
+  documentId: string;  // From VeltInitializeDocument context
+  fieldId: string;     // Unique field ID within document
+  backendfallbackContent?: any;  // Backend content for seeding
+  onUpdate?: (params: { fieldId: string; value: any }) => void;
 }
 
-useEffect(() => {
-  if (editor && commentAnnotations?.length) {
-    renderComments({ editor, commentAnnotations })
-  }
-}, [editor, commentAnnotations])
+export function TipTapCollabEditor({
+  documentId,
+  fieldId,
+  backendfallbackContent,
+  onUpdate,
+}: TipTapCollabEditorProps) {
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSeededContentRef = useRef(false);
+  const isEditorReadyRef = useRef(false);
+
+  // [Velt] CRITICAL: Combine documentId and fieldId for unique editorId
+  const editorId = \`\${documentId}/\${fieldId}\`;
+
+  // [Velt] Format initial content for CRDT
+  const veltInitialContent = useMemo(() => {
+    if (!backendfallbackContent) return undefined;
+    if (Array.isArray(backendfallbackContent)) {
+      return { type: 'doc', content: backendfallbackContent };
+    }
+    return backendfallbackContent;
+  }, [backendfallbackContent]);
+
+  // [Velt] Initialize CRDT extension with unique editorId
+  const { VeltCrdt, isLoading } = useVeltTiptapCrdtExtension({
+    editorId,
+    initialContent: veltInitialContent,
+  });
+
+  // [Velt] Monitor server connection state
+  const serverConnectionState = useServerConnectionStateChangeHandler();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        undoRedo: false,  // CRITICAL: CRDT handles undo/redo
+      }),
+      ...(VeltCrdt ? [VeltCrdt] : []),
+    ],
+    // content: initialContent,  // CRITICAL: comment out - CRDT manages content
+    immediatelyRender: false,
+    onUpdate: ({ editor, transaction }) => {
+      // [Velt] CRITICAL: Detect remote syncs - skip saving these
+      const isRemoteSync =
+        transaction.getMeta('y-sync$') ||
+        transaction.getMeta('remote') ||
+        transaction.getMeta('velt-sync') ||
+        transaction.getMeta('isRemote');
+      if (isRemoteSync) return;
+
+      // [Velt] Debounced auto-save (2 seconds)
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (transaction.docChanged && isEditorReadyRef.current) {
+        saveTimeoutRef.current = setTimeout(() => {
+          const content = editor.getJSON()?.content || [];
+          onUpdate?.({ fieldId, value: content });
+        }, 2000);
+      }
+    },
+  }, [VeltCrdt]);
+
+  // [Velt] Seed from backend when CRDT doc is empty
+  useEffect(() => {
+    if (
+      editor && !isLoading &&
+      serverConnectionState === 'online' &&
+      !hasSeededContentRef.current &&
+      isEditorEmpty(editor) &&
+      hasBackendContent(backendfallbackContent)
+    ) {
+      hasSeededContentRef.current = true;
+      setTimeout(() => {
+        if (editor && !editor.isDestroyed) {
+          editor.commands.setContent(backendfallbackContent);
+          isEditorReadyRef.current = true;
+        }
+      }, 100);
+    } else if (editor && !isLoading && serverConnectionState === 'online') {
+      isEditorReadyRef.current = true;
+    }
+  }, [editor, isLoading, serverConnectionState, backendfallbackContent]);
+
+  if (isLoading) return <div>Loading...</div>;
+  return <EditorContent editor={editor} />;
+}
+
+// Helper functions
+const isEditorEmpty = (editor) => {
+  const json = editor?.getJSON();
+  if (!json?.content?.length) return true;
+  if (json.content.length === 1 && json.content[0].type === 'paragraph' && !json.content[0].content?.length) return true;
+  return false;
+};
+const hasBackendContent = (content) => content && !(Array.isArray(content) && content.length === 0);
 \`\`\`
 ` : ''}${crdtEditorType === 'codemirror' ? `- ✅ Package: @veltdev/codemirror-crdt-react
 - ✅ Hook: useVeltCodeMirrorCrdtExtension({ editorId, initialContent })
@@ -1017,116 +1104,131 @@ export function useAppUser() {
     ],
   });
 
-  // Step 4: Comment out JWT token generation (SECURITY)
+  // Step 4: Implement JWT token generation (Production Pattern)
   steps.push({
-    title: `Comment out JWT token generation in auth provider (SECURITY)`,
-    details: `Find the auth provider or token generation code (typically in a hook like \`useVeltAuthProvider\` or API route) and comment out the JWT token generation. Leave the structure visible with [Velt] comments for context.
+    title: `Implement JWT token generation via Velt API (Production Pattern)`,
+    details: `The CLI generates a placeholder JWT route. Replace it with the production pattern that calls Velt's token API.
 
-**Why comment it out:**
-- JWT token generation requires a secure secret key
-- The CLI-generated code uses example/placeholder secrets
-- Production apps should implement their own secure token generation
-- Prevents accidentally deploying with insecure example secrets
+**Production Pattern (FireHydrant Reference):**
+Server-side API calls Velt's token endpoint to generate secure JWT tokens.
 
-**What to keep:**
-- User data retrieval (\`useAppUser\` or similar)
-- Auth provider object structure
-- Retry configuration
+**Velt Token API:**
+\`\`\`
+POST https://api.velt.dev/v2/auth/token/get
+Headers:
+  x-velt-api-key: YOUR_VELT_PUBLIC_API_KEY
+  x-velt-auth-token: YOUR_VELT_AUTH_TOKEN (keep secret!)
+Body:
+  { "data": { "userId": "...", "userProperties": { "organizationId": "...", "email": "..." } } }
+Response:
+  { "result": { "data": { "token": "eyJ..." } } }
+\`\`\`
 
-**What to comment out:**
-- \`generateToken\` function implementation
-- Any JWT signing code
-- Example secret keys
+**Environment Variables to Set:**
+\`\`\`
+VELT_PUBLIC_API_KEY=your_api_key_here
+VELT_AUTH_TOKEN=your_auth_token_here  # NEVER expose to client!
+\`\`\`
 
-**Add clear [Velt] comments to explain:**
-- What each part does
-- Why token generation is commented out
-- What the developer needs to implement`,
+**Security Requirements:**
+- Keep VELT_AUTH_TOKEN server-side only (never expose to client)
+- Validate user session before generating tokens
+- The auth token should only be used in API routes, not client components`,
     codeExamples: [
       {
-        description: 'Example: Comment out generateToken in auth provider hook',
+        description: 'Production API Route: app/api/velt/token/route.ts',
         language: 'typescript',
-        code: `export function useVeltAuthProvider() {
-  // [Velt] Get your app's current authenticated user to authenticate with Velt.
-  const { user } = useAppUser();
+        code: `import { NextRequest, NextResponse } from 'next/server';
 
-  // [Velt] Create auth provider object to pass to VeltProvider
-  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
-    if (!user) return undefined;
-    return {
-      user,
-      retryConfig: { retryCount: 3, retryDelay: 1000 },
+// [Velt] JWT Token Generation - Production Pattern
+const VELT_API_KEY = process.env.VELT_PUBLIC_API_KEY;
+const VELT_AUTH_TOKEN = process.env.VELT_AUTH_TOKEN;
 
-      // [Velt] TODO: Implement secure token generation
-      // SECURITY: The example token generation has been commented out because:
-      // 1. It uses an example secret key that is NOT secure
-      // 2. You should implement your own backend token generation
-      // 3. Your backend should use a secure secret stored in environment variables
-      //
-      // To implement:
-      // 1. Create a backend API endpoint that generates JWT tokens
-      // 2. Use a secure secret key from environment variables
-      // 3. Validate the user's session before generating tokens
-      // 4. Set appropriate token expiration (e.g., 24 hours)
-      //
-      // Example implementation:
-      // generateToken: async () => {
-      //   return await getVeltJwtFromBackend({
-      //     userId: user.userId as string,
-      //     organizationId: user.organizationId as string,
-      //     email: user.email,
-      //   });
-      // },
-    };
-  }, [user]);
+export async function POST(request: NextRequest) {
+  try {
+    // [Velt] TODO: Add user session validation here
+    // const session = await getServerSession(authOptions);
+    // if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  return { authProvider };
+    const body = await request.json();
+    const { userId, organizationId, email } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    if (!VELT_API_KEY || !VELT_AUTH_TOKEN) {
+      console.error('[Velt] Missing VELT_PUBLIC_API_KEY or VELT_AUTH_TOKEN');
+      return NextResponse.json({ error: 'Velt credentials not configured' }, { status: 500 });
+    }
+
+    // [Velt] Call Velt Token API
+    const response = await fetch('https://api.velt.dev/v2/auth/token/get', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-velt-api-key': VELT_API_KEY,
+        'x-velt-auth-token': VELT_AUTH_TOKEN,
+      },
+      body: JSON.stringify({
+        data: {
+          userId,
+          userProperties: { organizationId: organizationId || 'default-org', email: email || '' },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Velt] Token API error:', await response.text());
+      return NextResponse.json({ error: 'Failed to generate token' }, { status: 500 });
+    }
+
+    const json = await response.json();
+    const token = json?.result?.data?.token;
+    if (!token) {
+      return NextResponse.json({ error: 'Invalid token response' }, { status: 500 });
+    }
+
+    return NextResponse.json({ token });
+  } catch (error) {
+    console.error('[Velt] Token generation error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }`,
       },
       {
-        description: 'Example: Comment out JWT generation in API route',
+        description: 'Client-side auth provider with backend token fetch',
         language: 'typescript',
-        code: `// app/api/velt/token/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+        code: `// In VeltInitializeUser.tsx - useVeltAuthProvider hook
+export function useVeltAuthProvider() {
+  const { user } = useAppUser();
 
-export async function POST(request: NextRequest) {
-  // [Velt] TODO: Implement secure token generation
-  // SECURITY: JWT generation has been commented out because:
-  // 1. The example uses a hardcoded secret key
-  // 2. There's no user session validation
-  // 3. Production apps need proper authentication
-  //
-  // Before uncommenting and using this:
-  // 1. Add user session validation
-  // 2. Use secure secret from environment variables
-  // 3. Implement token expiration
-  // 4. Never expose your secret key in client code
-  //
-  // Example secure implementation:
-  // const session = await getServerSession(authOptions);
-  // if (!session) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-  //
-  // const secret = process.env.JWT_SECRET;
-  // if (!secret) {
-  //   throw new Error('JWT_SECRET not configured');
-  // }
-  //
-  // const token = jwt.sign(
-  //   {
-  //     userId: session.user.id,
-  //     organizationId: session.user.orgId,
-  //   },
-  //   secret,
-  //   { expiresIn: '24h' }
-  // );
-  //
-  // return NextResponse.json({ token });
+  // [Velt] Token generation - calls backend API
+  const generateToken = useCallback(async (): Promise<string> => {
+    const response = await fetch('/api/velt/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user?.userId,
+        organizationId: user?.organizationId,
+        email: user?.email,
+      }),
+    });
+    if (!response.ok) throw new Error('Token fetch failed');
+    const data = await response.json();
+    return data.token;
+  }, [user]);
 
-  return NextResponse.json({
-    error: 'Token generation not implemented. See TODO comments above.'
-  }, { status: 501 });
+  const authProvider: VeltAuthProvider | undefined = useMemo(() => {
+    if (!user?.userId) return undefined;
+    return {
+      user: { userId: user.userId, name: user.name, email: user.email, organizationId: user.organizationId },
+      generateToken,
+      retryConfig: { retryCount: 3, retryDelay: 1000 },
+    };
+  }, [user, generateToken]);
+
+  return { authProvider };
 }`,
       },
     ],
@@ -1200,8 +1302,218 @@ After installation, query the Velt Docs MCP server for customization, troublesho
   });
 }
 
+/**
+ * Creates CLI-only installation report with TODO checklist
+ *
+ * Used when user types SKIP at feature selection.
+ * Returns a checklist of what was created and what user needs to do.
+ *
+ * @param {Object} options
+ * @param {Object} options.cliResult - Result from Velt CLI execution
+ * @param {Object} options.qaResult - Basic QA validation results
+ * @param {string} options.apiKey - API key (masked)
+ * @param {string} [options.cliMethod] - CLI execution method ('linked' or 'direct')
+ * @param {Object} [options.frameworkInfo] - Framework detection info
+ * @returns {string} Markdown report
+ */
+export function createCliOnlyReport({ cliResult, qaResult, apiKey, cliMethod, frameworkInfo }) {
+  const validationLines = qaResult.checks.map(c => {
+    const icon = c.status === 'pass' ? '✅' : c.status === 'warning' ? '⚠️' : '❌';
+    return `- ${icon} **${c.name}**: ${c.message}`;
+  }).join('\n');
+
+  // CLI execution method info
+  const cliMethodInfo = cliMethod
+    ? cliMethod === 'linked'
+      ? '**CLI Method:** npm-linked binary (`add-velt`)'
+      : '**CLI Method:** Direct execution (`node bin/velt.js`)'
+    : '';
+
+  // Framework info
+  const frameworkInfoSection = frameworkInfo
+    ? `**Framework:** ${frameworkInfo.projectType}${frameworkInfo.needsUseClient ? ' (with "use client" enforcement)' : ''}`
+    : '';
+
+  return `# ✅ Velt CLI Installation Complete (CLI-Only Mode)
+
+${cliMethodInfo}
+${frameworkInfoSection}
+
+You chose **SKIP** - the Velt CLI scaffolding has been run without feature integration.
+You can now wire up the features yourself, or re-run the installer without SKIP for guided setup.
+
+---
+
+## Files Created by Velt CLI
+
+\`\`\`
+components/velt/
+├── VeltCollaboration.tsx       # Collaboration components wrapper
+├── VeltInitializeDocument.tsx  # Document context setup
+└── VeltInitializeUser.tsx      # User authentication setup
+\`\`\`
+
+---
+
+## Validation Results
+
+${validationLines}
+
+**Score:** ${qaResult.score} | **Status:** ${qaResult.status}
+
+---
+
+## 📋 TODO Checklist (You Need To Complete)
+
+### 1. Verify @veltdev/react is installed
+
+The CLI should have installed \`@veltdev/react\`. If not, run:
+\`\`\`bash
+npm install @veltdev/react
+\`\`\`
+
+### 2. Configure environment variables
+
+Create or update \`.env.local\`:
+
+\`\`\`env
+NEXT_PUBLIC_VELT_API_KEY=${apiKey}
+\`\`\`
+
+### 3. Import CLI-generated components in your layout
+
+The CLI created wrapper components. Import them in \`app/layout.tsx\`:
+
+\`\`\`tsx
+// app/layout.tsx
+import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser';
+import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <VeltInitializeUser>
+          <VeltInitializeDocument>
+            <VeltCollaboration>
+              {children}
+            </VeltCollaboration>
+          </VeltInitializeDocument>
+        </VeltInitializeUser>
+      </body>
+    </html>
+  );
+}
+\`\`\`
+
+### 4. Configure user authentication
+
+Edit \`components/velt/VeltInitializeUser.tsx\` to connect your auth:
+
+\`\`\`tsx
+// TODO: Replace hardcoded user with your auth provider
+// Examples:
+// - Next-Auth: const { data: session } = useSession();
+// - Clerk: const { user } = useUser();
+// - Auth0: const { user } = useAuth0();
+
+const user = {
+  userId: "your-user-id",       // Required: unique user ID
+  name: "User Name",            // Required: display name
+  email: "user@example.com",    // Required: email
+  photoUrl: "https://...",      // Optional: avatar URL
+  organizationId: "your-org",   // Optional: for multi-tenant apps
+};
+\`\`\`
+
+### 5. Configure document identification
+
+Edit \`components/velt/VeltInitializeDocument.tsx\` to set document ID:
+
+\`\`\`tsx
+// TODO: Replace with your document ID logic
+// The document ID determines which users see each other's comments/cursors
+// Examples:
+// - Page-based: const documentId = pathname;
+// - Route param: const documentId = params.id;
+// - Custom: const documentId = getCurrentProjectId();
+
+const documentId = "your-document-id";
+\`\`\`
+
+### 6. Add Velt feature components
+
+Add specific features where needed in your app:
+
+\`\`\`tsx
+import { VeltComments, VeltPresence, VeltCursor } from '@veltdev/react';
+
+// Comments - add where you want commenting
+<VeltComments />
+
+// Presence - shows online users
+<VeltPresence />
+
+// Cursors - shows live cursor positions
+<VeltCursor />
+\`\`\`
+
+---
+
+## 🔗 Documentation
+
+- **Quick Start:** https://docs.velt.dev/get-started/quickstart
+- **Authentication:** https://docs.velt.dev/get-started/quickstart#step-5-authenticate-users
+- **Document Setup:** https://docs.velt.dev/get-started/quickstart#step-6-initialize-document
+- **Comments:** https://docs.velt.dev/async-collaboration/comments/setup
+- **Presence:** https://docs.velt.dev/realtime-collaboration/presence/setup
+- **Cursors:** https://docs.velt.dev/realtime-collaboration/cursors/setup
+
+---
+
+## 🚀 Next Steps
+
+**Option A: Manual Setup**
+Follow the TODO checklist above to wire up Velt features yourself.
+
+**Option B: Guided Setup**
+Re-run the installer and select specific features (don't type SKIP):
+\`\`\`
+@velt-installer install
+\`\`\`
+
+The guided mode will:
+- Generate a detailed implementation plan for your selected features
+- Detect your project structure and recommend file placements
+- Provide feature-specific code examples from Velt docs
+- Apply changes only after your approval
+
+---
+
+## ⚠️ Common Issues
+
+**"Velt API key not found"**
+- Make sure \`NEXT_PUBLIC_VELT_API_KEY\` is in your \`.env.local\`
+- Restart your dev server after adding environment variables
+
+**"Please set document id to continue"**
+- Ensure \`VeltInitializeDocument\` is properly configured with a document ID
+- The document ID should be unique per collaborative context
+
+**"Failed to authenticate user"**
+- Check that your user data includes required fields: \`userId\`, \`name\`, \`email\`
+- Verify the auth token is correct in your environment variables
+
+---
+
+*Generated by Velt MCP Installer (CLI-Only Mode)*
+`;
+}
+
 export default {
   formatInstallationPlan,
   createVeltCommentsPlan,
   createMultiFeaturePlan,
+  createCliOnlyReport,
 };

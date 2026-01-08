@@ -1,37 +1,131 @@
 # Velt MCP Installer
 
-**Status:** ✅ Functional POC - Ready for handoff
+**Status:** ✅ Production Ready
 
 > 📖 **New to this project?** See [HANDOFF.md](./HANDOFF.md) for complete handoff documentation.
 
-An MCP (Model Context Protocol) server that provides an orchestrator tool for installing Velt with freestyle comments in Next.js projects.
+An MCP (Model Context Protocol) server that provides AI-assisted installation of Velt collaboration features into Next.js projects.
 
 ## 🎯 What This Does
 
-Provides a **single MCP tool** (`install_velt_freestyle`) that orchestrates the complete Velt installation workflow:
+Provides a **unified installation tool** (`install_velt_interactive`) with two modes:
 
-1. **Collects Configuration** - Directory, API key, auth token
-2. **Runs Velt CLI** - Executes `add-velt-cli` to install base components
-3. **Queries Velt MCP** - Gets implementation patterns from Velt documentation
-4. **Analyzes & Integrates** - Intelligently adds Velt components to customer code
-5. **Validates** - Runs basic checks to ensure installation succeeded
+1. **Guided Mode** (default): Full installation with plan generation, user approval, and step-by-step implementation
+2. **CLI-Only Mode** (SKIP): Quick scaffolding with Velt CLI only - user wires features manually
+
+## 🚀 Installation Modes
+
+### Guided Mode (Default)
+
+Full interactive installation with plan generation and user approval:
+
+1. Confirm project directory (validates Next.js project)
+2. Provide API key and auth token
+3. Select features (comments, presence, cursors, etc.)
+4. **Tool generates implementation PLAN**
+5. **User reviews and approves the plan**
+6. AI applies the plan step-by-step
+7. Full QA validation
+
+### CLI-Only Mode (SKIP)
+
+Fast scaffolding without feature integration:
+
+1. Confirm project directory
+2. Provide API key and auth token
+3. Type **SKIP** at feature selection
+4. Velt CLI runs, creates scaffold files
+5. Basic QA validation
+6. TODO checklist for manual setup
+
+**When to use SKIP:**
+- You're experienced with Velt
+- You want to wire features yourself
+- You just need the base files
+- You'll integrate features manually later
+
+## 📋 How SKIP Works
+
+**IMPORTANT**: SKIP does NOT mean "use defaults". SKIP means CLI-only mode with NO feature integration.
+
+At the feature selection prompt (Step 4), the AI will show:
+
+```
+Select features to install OR type SKIP for CLI-only (you set up features yourself later):
+
+📝 Comments (specify type: freestyle/popover/page/text/inline/tiptap/lexical/slate)
+👥 Presence
+🖱️ Cursors
+🔔 Notifications
+🎥 Recorder
+📄 CRDT (specify editor: tiptap/codemirror/blocknote)
+─────────────────────────────────────
+⏭️  SKIP = CLI scaffolding only, no feature integration
+```
+
+If you type `SKIP` (case-insensitive):
+- ✅ Runs Velt CLI scaffolding (creates base files)
+- ✅ Runs basic QA validation
+- ✅ Returns TODO checklist for manual setup
+- ❌ Does NOT use any defaults (no "freestyle comments")
+- ❌ Does NOT ask more questions (VeltProvider location, sidebar position)
+- ❌ Does NOT generate implementation plan
+- ❌ Does NOT modify project files beyond CLI scaffolding
+
+## 📋 Plan/Apply Workflow (Guided Mode)
+
+```
+┌─────────────────┐
+│  Select Features │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Generate PLAN  │  ← Tool call #1: mode="guided", stage="plan"
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  User Approval  │  ← AI presents plan, asks: "Would you like me to implement?"
+└────────┬────────┘
+         │
+    (user says yes)
+         │
+         ▼
+┌─────────────────┐
+│   Apply PLAN    │  ← Tool call #2: mode="guided", stage="apply", approved=true
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Full QA       │
+└─────────────────┘
+```
 
 ## 🏗️ Architecture
 
 ```
 velt-mcp-installer/
 ├── bin/
-│   └── mcp-server.js          # Entry point
+│   └── mcp-server.js              # Entry point
 ├── src/
-│   ├── index.js                # MCP server setup
+│   ├── index.js                    # MCP server setup + tool definitions
 │   ├── tools/
-│   │   └── orchestrator.js    # Main orchestrator (5 sequential steps)
+│   │   ├── unified-installer.js   # Main installer (guided + CLI-only modes)
+│   │   ├── orchestrator.js        # [deprecated] Legacy orchestrator
+│   │   ├── interactive-installer.js # [deprecated] Interactive installer
+│   │   └── plan-based-installer.js  # [deprecated] Plan-based installer
 │   └── utils/
-│       ├── config.js           # Configuration collection
-│       ├── cli.js              # Velt CLI execution
-│       ├── velt-mcp.js         # Velt MCP query
-│       ├── integration.js      # Code analysis & integration
-│       └── validation.js      # Installation validation
+│       ├── config.js               # Configuration collection
+│       ├── cli.js                  # Velt CLI execution
+│       ├── velt-mcp.js             # Velt MCP query
+│       ├── velt-docs-fetcher.js    # Fetch docs from markdown URLs
+│       ├── velt-docs-urls.js       # Documentation URL helpers
+│       ├── integration.js          # Code analysis & integration
+│       ├── validation.js           # Installation validation (basic + full)
+│       ├── plan-formatter.js       # Plan generation + CLI-only report
+│       ├── comment-detector.js     # Placement detection
+│       └── screenshot.js           # Playwright screenshots
 └── package.json
 ```
 
@@ -53,7 +147,7 @@ Add to `.cursor/mcp.json` (or `.claude/mcp.json`):
   "mcpServers": {
     "velt-installer": {
       "command": "node",
-      "args": ["/Users/samarthgoel/Documents/velt-mcp-installer/bin/mcp-server.js"]
+      "args": ["/path/to/velt-mcp-installer/bin/mcp-server.js"]
     }
   }
 }
@@ -84,12 +178,12 @@ In AI chat, simply say:
 install velt
 ```
 
-The orchestrator tool will:
-- Collect configuration (API key from env or prompt)
-- Run Velt CLI
-- Query Velt MCP for patterns
-- Integrate components into your code
-- Validate installation
+The AI will guide you through:
+1. Confirming your project directory
+2. Providing your Velt API key and auth token
+3. Selecting features (or typing SKIP for CLI-only mode)
+4. Reviewing the implementation plan (guided mode)
+5. Approving and executing the plan
 
 ## 🔧 Configuration
 
@@ -115,32 +209,47 @@ Alternatively, create `.velt-agent-config.json` in your project:
 
 ## 📊 How It Works
 
-### Sequential Execution (No Hallucination Risk)
+### Unified Installer Flow
 
-The orchestrator uses **JavaScript async/await** to guarantee sequential execution:
+The unified installer (`installVeltUnified`) handles both modes:
 
 ```javascript
-async function installVeltFreestyle() {
-  // Step 1: ALWAYS runs first
-  const config = await collectConfiguration();
-  
-  // Step 2: ALWAYS runs second (after step 1)
-  const cli = await runVeltCli(config);
-  
-  // Step 3: ALWAYS runs third (after step 2)
-  const patterns = await queryVeltMCP();
-  
-  // Step 4: ALWAYS runs fourth (after step 3)
-  const integration = await analyzeAndIntegrate(patterns);
-  
-  // Step 5: ALWAYS runs fifth (after step 4)
-  const validation = await validate();
-  
-  return report;
-}
+// CLI-Only Mode (SKIP)
+installVeltUnified({
+  projectPath: '/path/to/project',
+  apiKey: 'your-api-key',
+  authToken: 'your-auth-token',
+  mode: 'cli-only',  // <-- SKIP triggers this
+});
+// Returns: CLI scaffold report + TODO checklist
+
+// Guided Mode - Plan Stage
+installVeltUnified({
+  projectPath: '/path/to/project',
+  apiKey: 'your-api-key',
+  authToken: 'your-auth-token',
+  mode: 'guided',
+  stage: 'plan',
+  features: ['comments', 'presence'],
+  commentType: 'freestyle',
+});
+// Returns: Implementation PLAN (no changes applied)
+
+// Guided Mode - Apply Stage (after user approval)
+installVeltUnified({
+  projectPath: '/path/to/project',
+  apiKey: 'your-api-key',
+  authToken: 'your-auth-token',
+  mode: 'guided',
+  stage: 'apply',
+  approved: true,  // <-- User approved the plan
+  features: ['comments', 'presence'],
+  commentType: 'freestyle',
+});
+// Returns: Full QA validation results
 ```
 
-**No AI decision-making inside the tool** - just deterministic JavaScript execution.
+**Key Principle:** Plan generation and application are separate stages. The AI must present the plan to the user and wait for approval before making any file changes.
 
 ## 🧪 Testing
 
@@ -188,34 +297,37 @@ cd test-velt-install
 
 4. In chat: `install velt`
 
-## 📝 POC Scope
+## ✅ Features
 
-**Included:**
-- ✅ Single orchestrator tool
-- ✅ Sequential execution (5 steps)
-- ✅ Basic discovery (Next.js detection)
-- ✅ Velt CLI integration
-- ✅ Code integration (layout + page)
-- ✅ Basic validation (5 checks)
-- ✅ **MCP prompts protocol** (declared, IDE handles prompts)
-- ✅ **Velt Docs MCP connection** (queries https://docs.velt.dev/mcp with fallback)
+**Installation Modes:**
+- ✅ Guided mode with plan generation and user approval
+- ✅ CLI-only mode (SKIP) for quick scaffolding
+- ✅ Two-stage workflow: plan → approve → apply
 
-**Deferred:**
-- ⚠️ Interactive prompt responses (currently uses env vars as fallback)
-- ❌ Advanced code analysis (AST parsing)
-- ❌ Multiple comment types
-- ❌ Feature selection
+**Feature Support:**
+- ✅ Comments (8 types: freestyle, popover, page, text, inline, tiptap, lexical, slate)
+- ✅ Presence (live user avatars)
+- ✅ Cursors (real-time cursor tracking)
+- ✅ Notifications
+- ✅ Recorder
+- ✅ CRDT (collaborative editing: Tiptap, CodeMirror, BlockNote)
+
+**Validation:**
+- ✅ Basic CLI validation (for SKIP mode)
+- ✅ Full integration validation (for guided mode)
+- ✅ Next.js project validation
+
+**Documentation:**
+- ✅ Fetches implementation patterns from Velt docs (.md URLs)
+- ✅ Parallel doc fetching for performance
+- ✅ Fallback patterns if fetch fails
 
 ## 🔮 Future Enhancements
 
-- [x] MCP prompts protocol (declared, IDE integration needed)
-- [x] Velt Docs MCP connection (with fallback)
-- [ ] Interactive prompt response handling
+- [ ] Rollback mechanism for failed installations
 - [ ] Advanced code analysis (AST parsing)
-- [ ] Support for multiple comment types
-- [ ] Feature selection (Comments, Presence, etc.)
-- [ ] Rollback mechanism
-- [ ] Comprehensive validation (30-point checklist)
+- [ ] Auto-detection of existing Velt installations
+- [ ] Support for non-Next.js frameworks
 
 ## 📄 License
 
@@ -223,5 +335,5 @@ MIT
 
 ## 🤝 Contributing
 
-This is a POC. Feedback welcome!
+Contributions welcome! Please read the [HANDOFF.md](./HANDOFF.md) for architecture details.
 

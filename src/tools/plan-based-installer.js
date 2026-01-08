@@ -1,6 +1,9 @@
 /**
  * Plan-Based Velt Installer
  *
+ * @deprecated Use unified-installer.js instead. This module is kept for backward compatibility.
+ * The unified installer provides both guided and CLI-only modes with better UX.
+ *
  * Orchestrates installation up to CLI completion, then returns a PLAN
  * for the AI to complete the implementation.
  */
