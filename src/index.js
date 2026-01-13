@@ -13,8 +13,6 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { installVeltFreestyle } from './tools/orchestrator.js';
-import { installVeltInteractive } from './tools/interactive-installer.js';
-import { installVeltWithPlan } from './tools/plan-based-installer.js';
 import { installVeltUnified } from './tools/unified-installer.js';
 import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
 import { detectCommentPlacement } from './utils/comment-detector.js';
@@ -154,7 +152,7 @@ export async function createServer() {
           '\n  ' +
           '\n  DO NOT pass features, commentType, or any other params.' +
           '\n  DO NOT ask VeltProvider location.' +
-          '\n  DO NOT ask sidebar position.' +
+          '\n  DO NOT ask Velt features corner position.' +
           '\n  DO NOT generate a plan.' +
           '\n  DO NOT use any defaults like "freestyle comments".' +
           '\n  ' +
@@ -166,8 +164,9 @@ export async function createServer() {
           '\n\n  STEP 5 - VELTPROVIDER LOCATION:' +
           '\n    Ask: "Where should VeltProvider be installed? (app/layout.tsx recommended, or specify path)"' +
           '\n    WAIT for response.' +
-          '\n\n  STEP 6 - SIDEBAR POSITION (only if comments selected):' +
-          '\n    Ask: "Sidebar header position? (top-left/top-right/bottom-left/bottom-right)"' +
+          '\n\n  STEP 6 - VELT FEATURES CORNER POSITION:' +
+          '\n    Ask: "Which corner would you like to place the Velt features? (top-left/top-right/bottom-left/bottom-right)"' +
+          '\n    Note: All Velt components (presence avatars, notifications, comments sidebar, etc.) will be placed in this corner.' +
           '\n    WAIT for response.' +
           '\n\n  STEP 7 - CALL TOOL (PLAN STAGE):' +
           '\n    Call with mode="guided", stage="plan", and all collected params.' +
@@ -236,7 +235,7 @@ export async function createServer() {
             headerPosition: {
               type: 'string',
               enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-              description: 'Position for the comments sidebar header. Default: "top-right"',
+              description: 'Corner position for all Velt features (presence, notifications, comments sidebar, etc.). Default: "top-right"',
             },
             veltProviderLocation: {
               type: 'string',

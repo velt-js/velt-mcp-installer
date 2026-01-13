@@ -74,17 +74,19 @@ export function resolveLocalCliBin() {
  * Maps MCP feature selections to CLI flags
  *
  * CLI Flags supported by local add-velt:
+ *   --presence          Add presence (VeltPresence - shows online users)
+ *   --cursors           Add cursors (VeltCursor - shows live cursor positions)
  *   --comments          Add comments (VeltComments, VeltCommentsSidebar)
  *   --notifications     Add notifications (VeltNotificationsTool)
  *   --reactflow-crdt    Add ReactFlow CRDT
  *   --tiptap-crdt       Add Tiptap CRDT
  *   --codemirror-crdt   Add CodeMirror CRDT
- *   --all               Enable comments + notifications (REQUIRES a CRDT flag!)
+ *   --all               Enable presence + cursors + comments + notifications + CRDT (REQUIRES a CRDT flag!)
  *   --force, -f         Force overwrite existing files
  *   --legacy-peer-deps  Use legacy peer deps (npm only)
  *
  * @param {Object} params
- * @param {string[]} [params.features=[]] - Features to install: 'comments', 'notifications', 'crdt'
+ * @param {string[]} [params.features=[]] - Features to install: 'presence', 'cursors', 'comments', 'notifications', 'crdt'
  * @param {string} [params.crdtType=null] - CRDT type: 'tiptap', 'codemirror', 'reactflow'
  * @param {boolean} [params.force=false] - Force overwrite files
  * @param {boolean} [params.legacyPeerDeps=false] - Use legacy peer deps
@@ -101,6 +103,8 @@ export function mapFeaturesToCliFlags({
   // Normalize features to lowercase
   const normalizedFeatures = features.map(f => f.toLowerCase());
 
+  const hasPresence = normalizedFeatures.includes('presence');
+  const hasCursors = normalizedFeatures.includes('cursors');
   const hasComments = normalizedFeatures.includes('comments');
   const hasNotifications = normalizedFeatures.includes('notifications');
   const hasCrdt = normalizedFeatures.includes('crdt') && crdtType;
@@ -112,8 +116,8 @@ export function mapFeaturesToCliFlags({
   }
 
   // Determine flag strategy
-  // --all requires a CRDT flag, so only use it when we have all three (comments + notifications + crdt)
-  const useAllFlag = hasComments && hasNotifications && hasCrdt;
+  // --all requires a CRDT flag, so only use it when we have all features
+  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && hasCrdt;
 
   if (useAllFlag) {
     // Use --all with CRDT type
@@ -121,6 +125,12 @@ export function mapFeaturesToCliFlags({
     flags.push(`--${crdtType.toLowerCase()}-crdt`);
   } else {
     // Build individual flags
+    if (hasPresence) {
+      flags.push('--presence');
+    }
+    if (hasCursors) {
+      flags.push('--cursors');
+    }
     if (hasComments) {
       flags.push('--comments');
     }
@@ -292,6 +302,21 @@ export async function executeVeltCli({
 
   console.error(`   🏷️  Features: ${features.length > 0 ? features.join(', ') : '(core only)'}`);
   console.error(`   🚩 Flags: ${flags.length > 0 ? flags.join(' ') : '(none)'}`);
+
+  // Preview the exact command that will be run
+  const resolution = resolveLocalCliBin();
+  let previewCommand;
+  if (resolution.method === 'linked') {
+    previewCommand = `add-velt ${flags.join(' ')}`.trim();
+  } else if (resolution.method === 'direct') {
+    previewCommand = `node "${resolution.path}" ${flags.join(' ')}`.trim();
+  } else {
+    previewCommand = `(error: ${resolution.error})`;
+  }
+
+  console.error('\n   ═══════════════════════════════════════════════════════════');
+  console.error(`   📋 EXACT CLI COMMAND: ${previewCommand}`);
+  console.error('   ═══════════════════════════════════════════════════════════\n');
 
   // Build environment with API credentials
   const env = {

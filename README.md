@@ -2,8 +2,6 @@
 
 **Status:** ✅ Production Ready
 
-> 📖 **New to this project?** See [HANDOFF.md](./HANDOFF.md) for complete handoff documentation.
-
 An MCP (Model Context Protocol) server that provides AI-assisted installation of Velt collaboration features into Next.js projects.
 
 ## 🎯 What This Does
@@ -109,25 +107,38 @@ velt-mcp-installer/
 ├── bin/
 │   └── mcp-server.js              # Entry point
 ├── src/
-│   ├── index.js                    # MCP server setup + tool definitions
+│   ├── index.js                   # MCP server setup + tool definitions
 │   ├── tools/
 │   │   ├── unified-installer.js   # Main installer (guided + CLI-only modes)
-│   │   ├── orchestrator.js        # [deprecated] Legacy orchestrator
-│   │   ├── interactive-installer.js # [deprecated] Interactive installer
-│   │   └── plan-based-installer.js  # [deprecated] Plan-based installer
+│   │   └── orchestrator.js        # Legacy installer (install_velt_freestyle)
 │   └── utils/
-│       ├── config.js               # Configuration collection
-│       ├── cli.js                  # Velt CLI execution
-│       ├── velt-mcp.js             # Velt MCP query
-│       ├── velt-docs-fetcher.js    # Fetch docs from markdown URLs
-│       ├── velt-docs-urls.js       # Documentation URL helpers
-│       ├── integration.js          # Code analysis & integration
-│       ├── validation.js           # Installation validation (basic + full)
-│       ├── plan-formatter.js       # Plan generation + CLI-only report
-│       ├── comment-detector.js     # Placement detection
-│       └── screenshot.js           # Playwright screenshots
-└── package.json
+│       ├── cli.js                 # Velt CLI execution wrapper
+│       ├── local-cli.js           # Local CLI binary resolution + execution
+│       ├── config.js              # Configuration collection
+│       ├── framework-detection.js # Next.js project detection
+│       ├── validation.js          # Installation validation (basic + full)
+│       ├── plan-formatter.js      # Plan generation + CLI-only report
+│       ├── velt-docs-fetcher.js   # Fetch docs from markdown URLs
+│       ├── velt-docs-urls.js      # Documentation URL helpers
+│       ├── velt-mcp.js            # Velt MCP query + library detection
+│       ├── velt-mcp-client.js     # Velt Docs MCP client
+│       ├── integration.js         # Code analysis & integration
+│       ├── header-positioning.js  # Sidebar header positioning
+│       ├── use-client.js          # "use client" directive handling
+│       ├── comment-detector.js    # Placement detection
+│       └── screenshot.js          # Playwright screenshots
+├── package.json
+└── README.md
 ```
+
+## 🛠️ Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `install_velt_interactive` | **Recommended** - Unified installer with guided or CLI-only mode |
+| `install_velt_freestyle` | Legacy installer for basic freestyle comments |
+| `take_project_screenshot` | Capture screenshot of running Next.js app |
+| `detect_comment_placement` | Analyze project structure for comment placement |
 
 ## 🚀 Quick Start
 
@@ -138,9 +149,11 @@ cd ~/Documents/velt-mcp-installer
 npm install
 ```
 
-### Configure in Cursor/Claude Code
+### Configure in Claude Desktop / Cursor
 
-Add to `.cursor/mcp.json` (or `.claude/mcp.json`):
+Add to your MCP configuration file:
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -153,14 +166,14 @@ Add to `.cursor/mcp.json` (or `.claude/mcp.json`):
 }
 ```
 
-Or use npx (zero-install):
+**Cursor** (`.cursor/mcp.json`):
 
 ```json
 {
   "mcpServers": {
     "velt-installer": {
-      "command": "npx",
-      "args": ["-y", "@veltdev/velt-mcp-installer"]
+      "command": "node",
+      "args": ["/path/to/velt-mcp-installer/bin/mcp-server.js"]
     }
   }
 }
@@ -168,7 +181,7 @@ Or use npx (zero-install):
 
 ### Restart IDE
 
-Restart Cursor or Claude Code to load the MCP server.
+Restart your IDE to load the MCP server.
 
 ### Usage
 
@@ -192,7 +205,6 @@ The AI will guide you through:
 ```bash
 export VELT_API_KEY="your_api_key_here"
 export VELT_AUTH_TOKEN="your_auth_token_here"  # Optional
-export VELT_CLI_PATH="/path/to/add-velt-next-js/bin/velt.js"  # Optional
 ```
 
 ### Config File
@@ -202,86 +214,27 @@ Alternatively, create `.velt-agent-config.json` in your project:
 ```json
 {
   "apiKey": "your_api_key_here",
-  "authToken": "your_auth_token_here",
-  "cliPath": "/path/to/velt.js"
+  "authToken": "your_auth_token_here"
 }
 ```
 
-## 📊 How It Works
-
-### Unified Installer Flow
-
-The unified installer (`installVeltUnified`) handles both modes:
-
-```javascript
-// CLI-Only Mode (SKIP)
-installVeltUnified({
-  projectPath: '/path/to/project',
-  apiKey: 'your-api-key',
-  authToken: 'your-auth-token',
-  mode: 'cli-only',  // <-- SKIP triggers this
-});
-// Returns: CLI scaffold report + TODO checklist
-
-// Guided Mode - Plan Stage
-installVeltUnified({
-  projectPath: '/path/to/project',
-  apiKey: 'your-api-key',
-  authToken: 'your-auth-token',
-  mode: 'guided',
-  stage: 'plan',
-  features: ['comments', 'presence'],
-  commentType: 'freestyle',
-});
-// Returns: Implementation PLAN (no changes applied)
-
-// Guided Mode - Apply Stage (after user approval)
-installVeltUnified({
-  projectPath: '/path/to/project',
-  apiKey: 'your-api-key',
-  authToken: 'your-auth-token',
-  mode: 'guided',
-  stage: 'apply',
-  approved: true,  // <-- User approved the plan
-  features: ['comments', 'presence'],
-  commentType: 'freestyle',
-});
-// Returns: Full QA validation results
-```
-
-**Key Principle:** Plan generation and application are separate stages. The AI must present the plan to the user and wait for approval before making any file changes.
-
 ## 🧪 Testing
 
-### Test MCP Server Directly
+### Test MCP Server
 
 ```bash
-# Start server
-node bin/mcp-server.js
+# Start server (runs on stdio)
+npm start
 
-# In another terminal, test with JSON-RPC
+# Or with watch mode for development
+npm run dev
+```
+
+### Test JSON-RPC
+
+```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node bin/mcp-server.js
 ```
-
-### Check Velt Docs MCP Connection
-
-When you run the installer, you'll see clear messages indicating:
-
-**✅ Real Velt Docs Query:**
-```
-🔍 Querying Velt Docs MCP server for implementation patterns...
-✅ Successfully queried Velt Docs MCP server!
-   ✓ Patterns extracted from real Velt documentation
-```
-
-**⚠️ Fallback Patterns:**
-```
-⚠️  Failed to query Velt Docs MCP server
-   → Falling back to hardcoded patterns
-   → Patterns are based on known best practices
-```
-
-See [MESSAGES.md](./MESSAGES.md) for complete message documentation.
 
 ### Test in Real Project
 
@@ -291,9 +244,9 @@ npx create-next-app@latest test-velt-install
 cd test-velt-install
 ```
 
-2. Configure MCP server in `.cursor/mcp.json`
+2. Configure MCP server in your IDE
 
-3. Restart Cursor
+3. Restart IDE
 
 4. In chat: `install velt`
 
@@ -322,18 +275,6 @@ cd test-velt-install
 - ✅ Parallel doc fetching for performance
 - ✅ Fallback patterns if fetch fails
 
-## 🔮 Future Enhancements
-
-- [ ] Rollback mechanism for failed installations
-- [ ] Advanced code analysis (AST parsing)
-- [ ] Auto-detection of existing Velt installations
-- [ ] Support for non-Next.js frameworks
-
 ## 📄 License
 
 MIT
-
-## 🤝 Contributing
-
-Contributions welcome! Please read the [HANDOFF.md](./HANDOFF.md) for architecture details.
-

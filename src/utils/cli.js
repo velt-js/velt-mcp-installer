@@ -99,8 +99,8 @@ export async function runVeltCliWithFeatures({
   console.error('\n🎯 Running Velt CLI with feature flags');
 
   // Map MCP features to CLI-compatible features
-  // The local CLI supports: comments, notifications, and CRDT types
-  // Other features (presence, cursors, recorder) are handled by the MCP guided plan, not CLI
+  // The local CLI supports: comments, notifications, presence, cursors, and CRDT types
+  // Only 'recorder' is handled by the MCP guided plan (not supported by CLI)
   const cliFeatures = [];
 
   if (features.includes('comments')) {
@@ -109,12 +109,18 @@ export async function runVeltCliWithFeatures({
   if (features.includes('notifications')) {
     cliFeatures.push('notifications');
   }
+  if (features.includes('presence')) {
+    cliFeatures.push('presence');
+  }
+  if (features.includes('cursors')) {
+    cliFeatures.push('cursors');
+  }
   if (features.includes('crdt') && crdtEditorType) {
     cliFeatures.push('crdt');
   }
 
   console.error(`   Requested features: ${features.join(', ')}`);
-  console.error(`   CLI-supported features: ${cliFeatures.length > 0 ? cliFeatures.join(', ') : '(core only)'}`);
+  console.error(`   CLI features to forward: ${cliFeatures.length > 0 ? cliFeatures.join(', ') : '(core only)'}`);
 
   if (crdtEditorType) {
     console.error(`   CRDT Editor: ${crdtEditorType}`);

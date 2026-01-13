@@ -106,14 +106,17 @@ export function createVeltCommentsPlan(options) {
     title: `Import and use CLI-generated Velt components in ${locationText}`,
     details: `The Velt CLI has generated the necessary component files in \`components/velt/\`. DO NOT create new files. Use the existing files:
 
-**CLI-Generated Files (DO NOT MODIFY):**
-- \`components/velt/VeltInitializeUser.tsx\` - Handles user authentication with VeltProvider
-- \`components/velt/VeltInitializeDocument.tsx\` - Handles document context
-- \`components/velt/VeltCollaboration.tsx\` - Main collaboration components wrapper
+**CLI-Generated Files:**
+- \`components/velt/VeltInitializeUser.tsx\` - Exports \`useVeltAuthProvider\` hook (NOT a wrapper component)
+- \`components/velt/VeltInitializeDocument.tsx\` - Exports \`useCurrentDocument\` hook for document context
+- \`components/velt/VeltCollaboration.tsx\` - Velt feature components (comments, presence, etc.)
+- \`app/userAuth/AppUserContext.tsx\` - User context provider wrapper
 - \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
-- \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
+- \`app/api/velt/token/route.ts\` - Token generation API
 
-⚠️ **CRITICAL: app/layout.tsx MUST include AppUserProvider:**
+⚠️ **CRITICAL ARCHITECTURE (Sample App Pattern):**
+
+**1. app/layout.tsx - Wrap with AppUserProvider:**
 \`\`\`tsx
 import { AppUserProvider } from './userAuth/AppUserContext'
 
@@ -129,12 +132,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   )
 }
 \`\`\`
-**Why**: Without AppUserProvider wrapper, user context is undefined and Velt auth breaks.
+**Why**: AppUserProvider provides user context to all components including Velt auth.
+
+**2. app/page.tsx (or root page) - VeltProvider with authProvider hook:**
+\`\`\`tsx
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+
+const VELT_API_KEY = process.env.NEXT_PUBLIC_VELT_API_KEY!;
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content */}
+    </VeltProvider>
+  );
+}
+\`\`\`
+**Why**: VeltProvider must be in page.tsx with authProvider from hook, NOT nested wrapper components.
 
 **What to do:**
-1. Import the CLI-generated components into ${locationText}
-2. Wrap your app with these components
-3. ENSURE app/layout.tsx has AppUserProvider wrapper
+1. Add AppUserProvider wrapper to app/layout.tsx
+2. Add VeltProvider to ${locationText} using useVeltAuthProvider hook
+3. Import VeltCollaboration for feature components
 4. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
@@ -175,21 +202,28 @@ import { useCommentAnnotations } from '@veltdev/react'
 **IMPORTANT:** All Velt-related files should remain in \`components/velt/\`. Do not create new Velt files outside this folder.`,
     codeExamples: [
       {
-        description: `Import CLI-generated components in ${locationText}`,
+        description: `Correct pattern: VeltProvider in page.tsx with authProvider hook`,
         language: 'tsx',
-        code: `// Import CLI-generated Velt components
-import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser'
-import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument'
-import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
+        code: `// app/page.tsx (or your root page component)
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
 
-// Wrap your app:
-<VeltInitializeUser>
-  <VeltInitializeDocument>
-    <VeltCollaboration>
-      {children}
-    </VeltCollaboration>
-  </VeltInitializeDocument>
-</VeltInitializeUser>
+const VELT_API_KEY = process.env.NEXT_PUBLIC_VELT_API_KEY!;
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content here */}
+    </VeltProvider>
+  );
+}
 
 // For ${commentType} comments: Follow implementation at ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
       },
@@ -652,14 +686,17 @@ export function createMultiFeaturePlan(options) {
     title: `Import and use CLI-generated Velt components in ${locationText}`,
     details: `The Velt CLI has generated the necessary component files in \`components/velt/\`. DO NOT create new files. Use the existing files:
 
-**CLI-Generated Files (DO NOT MODIFY):**
-- \`components/velt/VeltInitializeUser.tsx\` - Handles user authentication with VeltProvider
-- \`components/velt/VeltInitializeDocument.tsx\` - Handles document context
-- \`components/velt/VeltCollaboration.tsx\` - Main collaboration components wrapper
+**CLI-Generated Files:**
+- \`components/velt/VeltInitializeUser.tsx\` - Exports \`useVeltAuthProvider\` hook (NOT a wrapper component)
+- \`components/velt/VeltInitializeDocument.tsx\` - Exports \`useCurrentDocument\` hook for document context
+- \`components/velt/VeltCollaboration.tsx\` - Velt feature components (comments, presence, etc.)
+- \`app/userAuth/AppUserContext.tsx\` - User context provider wrapper
 - \`app/userAuth/useAppUser.tsx\` - User data hook (add TODOs here)
-- \`app/api/velt/token/route.ts\` - Token generation API (comment out JWT here)
+- \`app/api/velt/token/route.ts\` - Token generation API
 
-⚠️ **CRITICAL: app/layout.tsx MUST include AppUserProvider:**
+⚠️ **CRITICAL ARCHITECTURE (Sample App Pattern):**
+
+**1. app/layout.tsx - Wrap with AppUserProvider:**
 \`\`\`tsx
 import { AppUserProvider } from './userAuth/AppUserContext'
 
@@ -675,47 +712,91 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   )
 }
 \`\`\`
-**Why**: Without AppUserProvider wrapper, user context is undefined and Velt auth breaks.
+**Why**: AppUserProvider provides user context to all components including Velt auth.
+
+**2. app/page.tsx (or root page) - VeltProvider with authProvider hook:**
+\`\`\`tsx
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+
+const VELT_API_KEY = process.env.NEXT_PUBLIC_VELT_API_KEY!;
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content */}
+    </VeltProvider>
+  );
+}
+\`\`\`
+**Why**: VeltProvider must be in page.tsx with authProvider from hook, NOT nested wrapper components.
 
 **What to do:**
-1. Import the CLI-generated components into ${locationText}
-2. Wrap your app with these components
-3. ENSURE app/layout.tsx has AppUserProvider wrapper
+1. Add AppUserProvider wrapper to app/layout.tsx
+2. Add VeltProvider to ${locationText} using useVeltAuthProvider hook
+3. Import VeltCollaboration for feature components
 4. Follow the markdown documentation for feature-specific implementation
 
-⚠️ **CRITICAL: Position Velt Components to Avoid White Bar:**
-When using VeltPresence or VeltNotificationsTool in VeltCollaboration.tsx, wrap them in positioned containers:
+⚠️ **CRITICAL: Position ALL Velt Components in User's Chosen Corner:**
+All Velt feature components (presence, notifications, comments sidebar, etc.) should be placed in the SAME corner that the user specified. This creates a consistent, grouped UI.
+
+**Position based on user's chosen corner:**
+- **top-left**: \`fixed top-4 left-4\`
+- **top-right**: \`fixed top-4 right-4\`
+- **bottom-left**: \`fixed bottom-4 left-4\`
+- **bottom-right**: \`fixed bottom-4 right-4\`
 
 \`\`\`tsx
-export function VeltCollaboration() {
+// VeltCollaboration.tsx - Place ALL Velt components in the chosen corner
+export function VeltCollaboration({ documentId }: { documentId: string }) {
   return (
     <>
-      {/* [Velt] Presence - MUST be wrapped in positioned container */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* [Velt] ALL features grouped in user's chosen corner */}
+      <div className="fixed [POSITION] z-50 flex flex-col gap-2">
+        {/* Presence avatars */}
         <VeltPresence flockMode={false} maxUsers={5} />
+
+        {/* Notifications bell */}
+        <VeltNotificationsTool />
+
+        {/* Comments sidebar trigger (if using comments) */}
+        <VeltCommentsSidebar />
       </div>
 
+      {/* Cursors render across the whole page */}
       <VeltCursor />
 
-      {/* [Velt] Notifications - MUST be wrapped in positioned container */}
-      <div className="fixed bottom-4 left-4 z-50">
-        <VeltNotificationsTool />
-      </div>
-
-      {/* ... other components ... */}
+      {/* Comments tool for freestyle comments */}
+      <VeltCommentTool />
     </>
   );
 }
 \`\`\`
 
-**Why**: Without positioned containers, Velt components create a white bar at the top of the page.
+**Replace [POSITION] with user's choice:**
+- top-left → \`top-4 left-4\`
+- top-right → \`top-4 right-4\`
+- bottom-left → \`bottom-4 left-4\`
+- bottom-right → \`bottom-4 right-4\`
+
+**Why**: Grouping all Velt features in one corner creates a clean, consistent UI. Without positioned containers, Velt components create a white bar at the top of the page.
+
 Also add to globals.css or VeltCustomization.css:
 \`\`\`css
 /* Remove default white background from Velt components */
 velt-presence-container,
 velt-presence-container *,
 velt-notifications-tool-container,
-velt-notifications-tool-container * {
+velt-notifications-tool-container *,
+velt-comments-sidebar-container,
+velt-comments-sidebar-container * {
   background: transparent !important;
 }
 \`\`\`
@@ -966,21 +1047,28 @@ return <BlockNoteView editor={editor} />
 ${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (fetched from ${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (fetched from ${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (fetched from ${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (fetched from ${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (fetched from ${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (fetched from ${crdtImplementation.source})` : ''}\n` : ''}`,
     codeExamples: [
       {
-        description: `Import CLI-generated components in ${locationText}`,
+        description: `Correct pattern: VeltProvider in page.tsx with authProvider hook`,
         language: 'tsx',
-        code: `// Import CLI-generated Velt components
-import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser'
-import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument'
-import { VeltCollaboration } from '@/components/velt/VeltCollaboration'
+        code: `// app/page.tsx (or your root page component)
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
 
-// Wrap your app:
-<VeltInitializeUser>
-  <VeltInitializeDocument>
-    <VeltCollaboration>
-      {children}
-    </VeltCollaboration>
-  </VeltInitializeDocument>
-</VeltInitializeUser>
+const VELT_API_KEY = process.env.NEXT_PUBLIC_VELT_API_KEY!;
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content here */}
+    </VeltProvider>
+  );
+}
 
 // Get component implementations from markdown docs above`,
       },
@@ -1348,9 +1436,13 @@ You can now wire up the features yourself, or re-run the installer without SKIP 
 
 \`\`\`
 components/velt/
-├── VeltCollaboration.tsx       # Collaboration components wrapper
-├── VeltInitializeDocument.tsx  # Document context setup
-└── VeltInitializeUser.tsx      # User authentication setup
+├── VeltCollaboration.tsx       # Velt feature components (comments, presence, etc.)
+├── VeltInitializeDocument.tsx  # Exports useCurrentDocument hook
+└── VeltInitializeUser.tsx      # Exports useVeltAuthProvider hook
+
+app/userAuth/
+├── AppUserContext.tsx          # User context provider wrapper
+└── useAppUser.tsx              # User data hook
 \`\`\`
 
 ---
@@ -1380,36 +1472,57 @@ Create or update \`.env.local\`:
 NEXT_PUBLIC_VELT_API_KEY=${apiKey}
 \`\`\`
 
-### 3. Import CLI-generated components in your layout
+### 3. Set up app/layout.tsx with AppUserProvider
 
-The CLI created wrapper components. Import them in \`app/layout.tsx\`:
+Wrap your app with AppUserProvider for user context:
 
 \`\`\`tsx
 // app/layout.tsx
-import { VeltInitializeUser } from '@/components/velt/VeltInitializeUser';
-import { VeltInitializeDocument } from '@/components/velt/VeltInitializeDocument';
-import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+import { AppUserProvider } from './userAuth/AppUserContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <VeltInitializeUser>
-          <VeltInitializeDocument>
-            <VeltCollaboration>
-              {children}
-            </VeltCollaboration>
-          </VeltInitializeDocument>
-        </VeltInitializeUser>
+        <AppUserProvider>
+          {children}
+        </AppUserProvider>
       </body>
     </html>
   );
 }
 \`\`\`
 
-### 4. Configure user authentication
+### 4. Set up app/page.tsx with VeltProvider
 
-Edit \`components/velt/VeltInitializeUser.tsx\` to connect your auth:
+Add VeltProvider to your root page using the authProvider hook:
+
+\`\`\`tsx
+// app/page.tsx
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+
+const VELT_API_KEY = process.env.NEXT_PUBLIC_VELT_API_KEY!;
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content */}
+    </VeltProvider>
+  );
+}
+\`\`\`
+
+### 5. Configure user authentication
+
+Edit \`app/userAuth/useAppUser.tsx\` to connect your auth:
 
 \`\`\`tsx
 // TODO: Replace hardcoded user with your auth provider
@@ -1427,9 +1540,9 @@ const user = {
 };
 \`\`\`
 
-### 5. Configure document identification
+### 6. Configure document identification
 
-Edit \`components/velt/VeltInitializeDocument.tsx\` to set document ID:
+Edit \`components/velt/VeltInitializeDocument.tsx\` to set document ID in the useCurrentDocument hook:
 
 \`\`\`tsx
 // TODO: Replace with your document ID logic
