@@ -20,10 +20,12 @@ Full interactive installation with plan generation and user approval:
 1. Confirm project directory (validates Next.js project)
 2. Provide API key and auth token
 3. Select features (comments, presence, cursors, etc.)
-4. **Tool generates implementation PLAN**
-5. **User reviews and approves the plan**
-6. AI applies the plan step-by-step
-7. Full QA validation
+4. Choose VeltProvider location (app/page.tsx recommended)
+5. Choose corner position for Velt features (top-left/top-right/bottom-left/bottom-right)
+6. **Tool generates implementation PLAN**
+7. **User reviews and approves the plan**
+8. AI applies the plan step-by-step
+9. Full QA validation
 
 ### CLI-Only Mode (SKIP)
 
@@ -66,7 +68,7 @@ If you type `SKIP` (case-insensitive):
 - ✅ Runs basic QA validation
 - ✅ Returns TODO checklist for manual setup
 - ❌ Does NOT use any defaults (no "freestyle comments")
-- ❌ Does NOT ask more questions (VeltProvider location, sidebar position)
+- ❌ Does NOT ask more questions (VeltProvider location, corner position)
 - ❌ Does NOT generate implementation plan
 - ❌ Does NOT modify project files beyond CLI scaffolding
 
@@ -100,7 +102,80 @@ If you type `SKIP` (case-insensitive):
 └─────────────────┘
 ```
 
-## 🏗️ Architecture
+## 🎨 Generated Code Pattern
+
+The MCP installer instructs the AI to follow this architecture pattern (based on Velt sample apps):
+
+### File Structure Created
+
+```
+app/
+├── layout.tsx              # Wraps with AppUserProvider
+├── page.tsx                # Contains VeltProvider with authProvider hook
+└── userAuth/
+    ├── AppUserContext.tsx  # User context provider
+    └── useAppUser.tsx      # User data hook
+
+components/velt/
+├── VeltInitializeUser.tsx      # Exports useVeltAuthProvider hook
+├── VeltInitializeDocument.tsx  # Exports useCurrentDocument hook
+└── VeltCollaboration.tsx       # All Velt feature components
+
+app/api/velt/token/
+└── route.ts                # JWT token generation API
+```
+
+### layout.tsx Pattern
+
+```tsx
+import { AppUserProvider } from './userAuth/AppUserContext'
+
+export default function RootLayout({ children }) {
+  return (
+    <html><body>
+      <AppUserProvider>{children}</AppUserProvider>
+    </body></html>
+  )
+}
+```
+
+### page.tsx Pattern
+
+```tsx
+"use client";
+import { VeltProvider } from '@veltdev/react';
+import { useVeltAuthProvider } from '@/components/velt/VeltInitializeUser';
+import { useCurrentDocument } from '@/components/velt/VeltInitializeDocument';
+import { VeltCollaboration } from '@/components/velt/VeltCollaboration';
+
+export default function Page() {
+  const { authProvider } = useVeltAuthProvider();
+  const { documentId } = useCurrentDocument();
+
+  return (
+    <VeltProvider apiKey={VELT_API_KEY} authProvider={authProvider}>
+      <VeltCollaboration documentId={documentId} />
+      {/* Your page content */}
+    </VeltProvider>
+  );
+}
+```
+
+### Corner Positioning
+
+All Velt feature components (presence, notifications, comments sidebar) are grouped in the user's chosen corner:
+
+```tsx
+// VeltCollaboration.tsx
+<div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+  <VeltPresence />
+  <VeltNotificationsTool />
+  <VeltCommentsSidebar />
+</div>
+<VeltCursor />
+```
+
+## 🏗️ MCP Architecture
 
 ```
 velt-mcp-installer/
@@ -195,8 +270,10 @@ The AI will guide you through:
 1. Confirming your project directory
 2. Providing your Velt API key and auth token
 3. Selecting features (or typing SKIP for CLI-only mode)
-4. Reviewing the implementation plan (guided mode)
-5. Approving and executing the plan
+4. Choosing VeltProvider location
+5. Choosing corner position for all Velt features
+6. Reviewing the implementation plan (guided mode)
+7. Approving and executing the plan
 
 ## 🔧 Configuration
 
