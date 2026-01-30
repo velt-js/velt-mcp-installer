@@ -60,7 +60,7 @@ function maskApiKey(apiKey) {
  * @param {string} [params.commentType='freestyle'] - Comment type
  * @param {string} [params.crdtEditorType=null] - CRDT editor type
  * @param {string} [params.headerPosition='top-right'] - Sidebar header position
- * @param {string} [params.veltProviderLocation='app/layout.tsx'] - VeltProvider location
+ * @param {string} [params.veltProviderLocation='app/page.tsx'] - VeltProvider location
  * @param {string} [params.discoveryConsent] - User consent for codebase scanning: 'yes' | 'no'
  * @param {Object} [params.discoveryVerification] - Verification of scan results
  * @param {Object} [params.manualWiring] - Manual wiring answers (if consent='no')
@@ -79,7 +79,7 @@ export async function installVeltUnified(params) {
     commentType = 'freestyle',
     crdtEditorType = null,
     headerPosition = 'top-right',
-    veltProviderLocation = 'app/layout.tsx',
+    veltProviderLocation = 'app/page.tsx',
     discoveryConsent,      // NEW: 'yes' | 'no' | undefined
     discoveryVerification, // NEW: { status, overrides? }
     manualWiring,          // NEW: { documentId, user, auth, insertion }
@@ -674,7 +674,7 @@ export async function runGuidedPlanStage({
 
     if (wiring.documentId && !wiring.documentId.unsure) {
       wiringSection += `### Document ID\n`;
-      wiringSection += `- **Method**: ${wiring.documentId.method}\n`;
+      if (wiring.documentId.method) wiringSection += `- **Method**: ${wiring.documentId.method}\n`;
       if (wiring.documentId.filePath) wiringSection += `- **File**: \`${wiring.documentId.filePath}\`\n`;
       if (wiring.documentId.variableName) wiringSection += `- **Variable**: \`${wiring.documentId.variableName}\`\n`;
       wiringSection += '\n';
@@ -682,7 +682,7 @@ export async function runGuidedPlanStage({
 
     if (wiring.user && !wiring.user.unsure) {
       wiringSection += `### User Authentication\n`;
-      wiringSection += `- **Provider**: ${wiring.user.providerType}\n`;
+      if (wiring.user.providerType) wiringSection += `- **Provider**: ${wiring.user.providerType}\n`;
       if (wiring.user.filePath) wiringSection += `- **File**: \`${wiring.user.filePath}\`\n`;
       if (wiring.user.fields) wiringSection += `- **Fields**: ${wiring.user.fields.join(', ')}\n`;
       wiringSection += '\n';
@@ -690,7 +690,7 @@ export async function runGuidedPlanStage({
 
     if (wiring.insertion && !wiring.insertion.unsure) {
       wiringSection += `### Velt Initialization Location\n`;
-      wiringSection += `- **Location type**: ${wiring.insertion.locationType}\n`;
+      if (wiring.insertion.locationType) wiringSection += `- **Location type**: ${wiring.insertion.locationType}\n`;
       if (wiring.insertion.filePath) wiringSection += `- **File**: \`${wiring.insertion.filePath}\`\n`;
       wiringSection += '\n';
     }

@@ -110,14 +110,15 @@ export function mapFeaturesToCliFlags({
   const hasCrdt = normalizedFeatures.includes('crdt') && crdtType;
 
   // Validate CRDT type if provided
-  const validCrdtTypes = ['tiptap', 'codemirror', 'reactflow'];
-  if (hasCrdt && !validCrdtTypes.includes(crdtType.toLowerCase())) {
+  const validCrdtTypes = ['tiptap', 'codemirror', 'reactflow', 'blocknote'];
+  const isCrdtValid = hasCrdt && validCrdtTypes.includes(crdtType.toLowerCase());
+  if (hasCrdt && !isCrdtValid) {
     console.error(`   ⚠️  Unknown CRDT type "${crdtType}", skipping CRDT flag`);
   }
 
   // Determine flag strategy
-  // --all requires a CRDT flag, so only use it when we have all features
-  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && hasCrdt;
+  // --all requires a valid CRDT flag, so only use it when we have all features with a valid CRDT type
+  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && isCrdtValid;
 
   if (useAllFlag) {
     // Use --all with CRDT type
@@ -137,7 +138,7 @@ export function mapFeaturesToCliFlags({
     if (hasNotifications) {
       flags.push('--notifications');
     }
-    if (hasCrdt && validCrdtTypes.includes(crdtType.toLowerCase())) {
+    if (isCrdtValid) {
       flags.push(`--${crdtType.toLowerCase()}-crdt`);
     }
   }

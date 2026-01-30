@@ -17,9 +17,11 @@ function readEnvFile(projectPath) {
   // Ensure we're using absolute path - never search outside the specified directory
   const absolutePath = path.resolve(projectPath);
   
+  // Process .env first, then .env.local so local overrides take precedence
+  // (later values overwrite earlier ones in the envVars object)
   const envFiles = [
-    path.join(absolutePath, '.env.local'),
     path.join(absolutePath, '.env'),
+    path.join(absolutePath, '.env.local'),
   ];
 
   const envVars = {};

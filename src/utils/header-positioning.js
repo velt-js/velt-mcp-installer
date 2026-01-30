@@ -68,23 +68,16 @@ export function applyHeaderPositioning(filePath, position, filesModified, integr
     // Build inline style string
     const styleString = `style={{ position: '${positionStyle.position}', top: '${positionStyle.top}', right: '${positionStyle.right}', bottom: '${positionStyle.bottom}', left: '${positionStyle.left}', zIndex: 9999 }}`;
 
-    // Pattern 1: Self-closing tag
-    const selfClosingPattern = /<VeltCommentsSidebar\s*\/>/g;
-    if (selfClosingPattern.test(content)) {
-      content = content.replace(
-        selfClosingPattern,
-        `<VeltCommentsSidebar ${styleString} />`
-      );
-    } else {
-      // Pattern 2: Opening tag
-      const openingTagPattern = /<VeltCommentsSidebar(\s[^>]*)?>/g;
-      if (openingTagPattern.test(content)) {
-        content = content.replace(
-          openingTagPattern,
-          `<VeltCommentsSidebar ${styleString}$1>`
-        );
-      }
-    }
+    // Match all VeltCommentsSidebar tags: self-closing (with or without props) and opening tags.
+    // Captures existing attributes in group 1 and self-closing slash in group 2.
+    const tagPattern = /<VeltCommentsSidebar(\s[^>]*?)?\s*(\/?)>/g;
+    content = content.replace(tagPattern, (match, existingAttrs, selfClose) => {
+      // Strip any existing style prop from the captured attributes to avoid
+      // the duplicate-prop override problem (last prop wins in JSX).
+      let attrs = (existingAttrs || '').replace(/\s*style=\{\{[^}]*\}\}/g, '');
+      const closing = selfClose ? ' /' : '';
+      return `<VeltCommentsSidebar ${styleString}${attrs}${closing}>`;
+    });
 
     // Write back
     fs.writeFileSync(filePath, content, 'utf-8');

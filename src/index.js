@@ -148,7 +148,7 @@ export async function createServer() {
           '\n\n🚨🚨🚨 CRITICAL: ASK QUESTIONS ONE AT A TIME 🚨🚨🚨' +
           '\nDO NOT dump all questions in one message.' +
           '\nWait for user response before asking the next question.' +
-          '\nNO DEFAULTS - user must explicitly answer each question.' +
+          '\nIf the user skips a question, INFORM them of the default value being used (e.g., "Using default: freestyle comments") before proceeding.' +
           '\n\n=========================================' +
           '\nWORKFLOW - ASK ONE QUESTION, WAIT, THEN NEXT:' +
           '\n=========================================' +
@@ -563,11 +563,11 @@ Configuration will be used to install Velt with freestyle comments.`,
 
           // Only add feature-related params for guided mode
           if (mode === 'guided') {
-            installerParams.features = args?.features || ['comments'];
+            installerParams.features = (args?.features?.length > 0) ? args.features : ['comments'];
             installerParams.commentType = args?.commentType || 'freestyle';
             installerParams.crdtEditorType = args?.crdtEditorType || null;
             installerParams.headerPosition = args?.headerPosition || 'top-right';
-            installerParams.veltProviderLocation = args?.veltProviderLocation || 'app/layout.tsx';
+            installerParams.veltProviderLocation = args?.veltProviderLocation || 'app/page.tsx';
 
             // NEW: Discovery consent and verification params
             if (args?.discoveryConsent) {
