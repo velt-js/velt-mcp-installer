@@ -8,97 +8,44 @@
 
 import https from 'https';
 import { URL } from 'url';
+import fs from 'fs';
+import path from 'path';
 
 /**
- * Queries Velt Docs MCP server for implementation patterns
+ * Queries Velt documentation for implementation patterns
  * 
- * Connects to the Velt Docs MCP server at https://docs.velt.dev/mcp
- * and queries for documentation patterns.
+ * Tries three strategies in order:
+ * 1. Velt Docs MCP server (https://docs.velt.dev/mcp)
+ * 2. Direct URL fetch (https://docs.velt.dev/async-collaboration/comments/setup/freestyle)
+ * 3. Hardcoded fallback patterns
  * 
  * @param {Object} params
  * @param {string} params.question - Question to ask Velt MCP
  * @returns {Promise<Object>} Query result with patterns
  */
 export async function queryVeltMCP({ question }) {
+  const query = question || 'How do I implement freestyle comments in Next.js app router?';
+  const veltDocsMCPUrl = 'https://docs.velt.dev/mcp';
+  const veltDocsUrl = 'https://docs.velt.dev/async-collaboration/comments/setup/freestyle';
+  
+  console.error('🔍 Fetching Velt documentation for implementation patterns...');
+  
+  // ========================================================================
+  // Strategy 1: Try Velt Docs MCP server first
+  // ========================================================================
+  console.error('   Strategy 1: Attempting Velt Docs MCP server...');
+  console.error(`   MCP URL: ${veltDocsMCPUrl}`);
+  
   try {
-    // Velt Docs MCP server URL (HTTP-based MCP server)
-    const veltDocsMCPUrl = 'https://docs.velt.dev/mcp';
-    
-    // Alternative: Try Velt documentation search API directly
-    // Some MCP servers expose their functionality via direct APIs
-    const veltDocsSearchUrl = 'https://docs.velt.dev/api/search';
-    
-    const query = question || 'How do I implement freestyle comments in Next.js app router?';
-    
-    console.error('🔍 Querying Velt Docs for implementation patterns...');
-    console.error(`   Query: "${query}"`);
-    
-    try {
-      // Strategy 1: Try Velt Docs MCP server via HTTP (if accessible)
-      console.error(`   Attempting MCP endpoint: ${veltDocsMCPUrl}`);
+    if (typeof fetch !== 'undefined') {
+      // Node 18+ with native fetch
+      console.error('   Using native fetch (Node 18+)');
       
-      // Use fetch if available (Node 18+), otherwise use https module
-      let mcpResponse;
-      
-      if (typeof fetch !== 'undefined') {
-        // Node 18+ with native fetch
-        console.error('   Using native fetch (Node 18+)');
-        
-        // HTTP-based MCP servers use JSON-RPC over HTTP
-        // First, discover available tools
-        console.error('   Step 1: Discovering available tools...');
-        let toolsListResponse;
-        try {
-          toolsListResponse = await fetch(veltDocsMCPUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'tools/list',
-              id: Date.now(),
-            }),
-            signal: AbortSignal.timeout(8000),
-          });
-        } catch (listError) {
-          throw new Error(`Failed to connect to Velt Docs MCP: ${listError.message}`);
-        }
-
-        if (!toolsListResponse.ok) {
-          throw new Error(`HTTP ${toolsListResponse.status}: ${toolsListResponse.statusText}`);
-        }
-
-        const toolsList = await toolsListResponse.json();
-        
-        if (toolsList.error) {
-          throw new Error(`MCP error: ${toolsList.error.message || 'Unknown error'}`);
-        }
-
-        const availableTools = toolsList.result?.tools || [];
-        console.error(`   ✓ Found ${availableTools.length} available tools`);
-        
-        if (availableTools.length > 0) {
-          console.error(`   Tools: ${availableTools.map(t => t.name).join(', ')}`);
-        }
-
-        // Find the appropriate tool for querying documentation
-        const searchTool = availableTools.find(t => 
-          t.name.toLowerCase().includes('search') || 
-          t.name.toLowerCase().includes('query') ||
-          t.name.toLowerCase().includes('docs') ||
-          t.name.toLowerCase().includes('velt')
-        ) || availableTools[0];
-
-        if (!searchTool) {
-          throw new Error('No tools available in Velt Docs MCP server');
-        }
-
-        console.error(`   Step 2: Calling tool: ${searchTool.name}`);
-        
-        // Call the tool
-        const response = await fetch(veltDocsMCPUrl, {
+      // Try to discover available tools
+      console.error('   Step 1: Discovering available tools...');
+      let toolsListResponse;
+      try {
+        toolsListResponse = await fetch(veltDocsMCPUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -106,70 +53,73 @@ export async function queryVeltMCP({ question }) {
           },
           body: JSON.stringify({
             jsonrpc: '2.0',
-            method: 'tools/call',
-            id: Date.now(),
-            params: {
-              name: searchTool.name,
-              arguments: {
-                query: query,
-              },
-            },
-          }),
-          signal: AbortSignal.timeout(15000), // 15 second timeout for tool execution
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-        }
-
-        mcpResponse = await response.json();
-      } else {
-        // Node < 18: Use https module
-        console.error('   Using https module (Node < 18)');
-        
-        // Try tools/list first to discover available tools
-        try {
-          const toolsList = await makeHttpsRequest(veltDocsMCPUrl, {
-            jsonrpc: '2.0',
             method: 'tools/list',
             id: Date.now(),
-          });
-          
-          const toolName = toolsList.result?.tools?.find(t => 
-            t.name.toLowerCase().includes('search') || 
-            t.name.toLowerCase().includes('query') ||
-            t.name.toLowerCase().includes('docs')
-          )?.name || toolsList.result?.tools?.[0]?.name || 'query_docs';
-          
-          console.error(`   Discovered tool: ${toolName}`);
-          
-          mcpResponse = await makeHttpsRequest(veltDocsMCPUrl, {
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            id: Date.now(),
-            params: {
-              name: toolName,
-              arguments: {
-                query: query,
-              },
-            },
-          });
-        } catch (listError) {
-          // Fallback to original approach
-          mcpResponse = await makeHttpsRequest(veltDocsMCPUrl, {
-            jsonrpc: '2.0',
-            method: 'tools/call',
-            id: Date.now(),
-            params: {
-              name: 'query_docs',
-              arguments: {
-                query: query,
-              },
-            },
-          });
-        }
+          }),
+          signal: AbortSignal.timeout(5000), // Reduced to 5 seconds
+        });
+      } catch (listError) {
+        throw new Error(`Failed to connect to Velt Docs MCP: ${listError.message}`);
       }
+
+      if (!toolsListResponse.ok) {
+        throw new Error(`HTTP ${toolsListResponse.status}: ${toolsListResponse.statusText}`);
+      }
+
+      const toolsList = await toolsListResponse.json();
+      
+      if (toolsList.error) {
+        throw new Error(`MCP error: ${toolsList.error.message || 'Unknown error'}`);
+      }
+
+      const availableTools = toolsList.result?.tools || [];
+      console.error(`   ✓ Found ${availableTools.length} available tools`);
+      
+      if (availableTools.length > 0) {
+        console.error(`   Tools: ${availableTools.map(t => t.name).join(', ')}`);
+      }
+
+      // Find the appropriate tool for querying documentation
+      const searchTool = availableTools.find(t => 
+        t.name.toLowerCase().includes('search') || 
+        t.name.toLowerCase().includes('query') ||
+        t.name.toLowerCase().includes('docs') ||
+        t.name.toLowerCase().includes('velt')
+      ) || availableTools[0];
+
+      if (!searchTool) {
+        throw new Error('No tools available in Velt Docs MCP server');
+      }
+
+      console.error(`   Step 2: Calling tool: ${searchTool.name}`);
+
+      // Call the tool
+      const response = await fetch(veltDocsMCPUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: Date.now(),
+          params: {
+            name: searchTool.name,
+            arguments: {
+              query: query,
+            },
+          },
+        }),
+        signal: AbortSignal.timeout(5000), // Reduced to 5 seconds for faster failure
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const mcpResponse = await response.json();
       
       // Parse the MCP response
       if (mcpResponse.error) {
@@ -180,8 +130,15 @@ export async function queryVeltMCP({ question }) {
       const result = mcpResponse.result || mcpResponse;
       const patterns = extractPatternsFromMCPResponse(result);
       
+      // Show what patterns were found
+      const foundPatterns = [];
+      if (patterns.providerPattern) foundPatterns.push('VeltProvider');
+      if (patterns.commentsPattern) foundPatterns.push('VeltComments');
+      if (patterns.sidebarPattern) foundPatterns.push('VeltCommentsSidebar');
+      if (patterns.environmentPattern) foundPatterns.push('Environment variables');
+      
       console.error('✅ Successfully queried Velt Docs MCP server!');
-      console.error('   ✓ Patterns extracted from real Velt documentation');
+      console.error(`   ✓ Found patterns: ${foundPatterns.length > 0 ? foundPatterns.join(', ') : 'Using fallback patterns'}`);
       console.error(`   ✓ Source: Velt Docs MCP (${veltDocsMCPUrl})`);
       
       return {
@@ -191,33 +148,125 @@ export async function queryVeltMCP({ question }) {
         source: 'velt-docs-mcp',
         message: `✅ Successfully queried Velt Docs MCP server and extracted patterns from real documentation`,
       };
-    } catch (fetchError) {
-      // Strategy 2: Query Velt documentation website directly
-      // Since MCP server requires IDE client, we'll query docs.velt.dev directly
-      console.error(`   MCP endpoint failed: ${fetchError.message}`);
-      console.error(`   Strategy 2: Querying Velt documentation website directly...`);
+    } else {
+      // Node < 18: Use https module for MCP
+      console.error('   Using https module (Node < 18)');
       
-      // Since direct MCP query doesn't work, we'll use the hardcoded patterns
-      // which are based on Velt's actual documentation
-      // This is the correct approach for HTTP-based MCP servers
-      throw fetchError; // Re-throw to use fallback
+      try {
+        const toolsList = await makeHttpsRequest(veltDocsMCPUrl, {
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: Date.now(),
+        });
+        
+        const toolName = toolsList.result?.tools?.find(t => 
+          t.name.toLowerCase().includes('search') || 
+          t.name.toLowerCase().includes('query') ||
+          t.name.toLowerCase().includes('docs')
+        )?.name || toolsList.result?.tools?.[0]?.name || 'query_docs';
+        
+        console.error(`   Discovered tool: ${toolName}`);
+        
+        const mcpResponse = await makeHttpsRequest(veltDocsMCPUrl, {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: Date.now(),
+          params: {
+            name: toolName,
+            arguments: {
+              query: query,
+            },
+          },
+        });
+        
+        if (mcpResponse.error) {
+          throw new Error(mcpResponse.error.message || 'MCP query failed');
+        }
+
+        const result = mcpResponse.result || mcpResponse;
+        const patterns = extractPatternsFromMCPResponse(result);
+        
+        console.error('✅ Successfully queried Velt Docs MCP server!');
+        console.error(`   ✓ Source: Velt Docs MCP (${veltDocsMCPUrl})`);
+        
+        return {
+          success: true,
+          data: patterns,
+          query: query,
+          source: 'velt-docs-mcp',
+          message: `✅ Successfully queried Velt Docs MCP server and extracted patterns from real documentation`,
+        };
+      } catch (mcpError) {
+        throw mcpError;
+      }
+    }
+  } catch (mcpError) {
+    // ========================================================================
+    // Strategy 2: Fallback to direct URL fetch
+    // ========================================================================
+    console.error(`   ❌ MCP server failed: ${mcpError.message}`);
+    console.error('   Strategy 2: Falling back to direct URL fetch...');
+    console.error(`   URL: ${veltDocsUrl}`);
+    
+    try {
+      // Fetch documentation page directly
+      console.error(`   Fetching documentation page...`);
       
+      let htmlContent;
+      
+      if (typeof fetch !== 'undefined') {
+        // Node 18+ with native fetch
+        console.error('   Using native fetch (Node 18+)');
+        
+        const response = await fetch(veltDocsUrl, {
+          headers: {
+            'Accept': 'text/html',
+            'User-Agent': 'Velt-MCP-Installer/1.0',
+          },
+          signal: AbortSignal.timeout(5000), // Reduced to 5 seconds
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        htmlContent = await response.text();
+      } else {
+        // Node < 18: Use https module
+        console.error('   Using https module (Node < 18)');
+        htmlContent = await fetchHtmlPage(veltDocsUrl);
+      }
+      
+      console.error('   ✓ Successfully fetched documentation page');
+      
+      // Extract patterns from HTML content
+      console.error('   📖 Extracting code patterns from documentation...');
+      const patterns = extractPatternsFromDocsContent(htmlContent, query);
+      
+      // Show what patterns were found
+      const foundPatterns = [];
+      if (patterns.providerPattern?.code) foundPatterns.push('VeltProvider');
+      if (patterns.commentsPattern?.code) foundPatterns.push('VeltComments');
+      if (patterns.sidebarPattern?.code) foundPatterns.push('VeltCommentsSidebar');
+      if (patterns.environmentPattern?.code) foundPatterns.push('Environment variables');
+      
+      console.error('✅ Successfully extracted patterns from Velt documentation!');
+      console.error(`   ✓ Found patterns: ${foundPatterns.length > 0 ? foundPatterns.join(', ') : 'Using fallback patterns'}`);
+      console.error(`   ✓ Source: Velt Docs URL (${veltDocsUrl})`);
+      
+      return {
+        success: true,
+        data: patterns,
+        query: query,
+        source: 'velt-docs-url',
+        message: `✅ Successfully fetched and extracted patterns from Velt documentation (fallback from MCP)`,
+      };
+    } catch (urlError) {
+      // ========================================================================
       // Strategy 3: Fallback to hardcoded patterns
-      console.error('');
-      console.error('⚠️  Velt Docs MCP server is not directly accessible');
-      console.error(`   Error: ${fetchError.message}`);
-      console.error(`   Endpoint: ${veltDocsMCPUrl}`);
-      console.error('');
-      console.error('   📝 Technical Note:');
-      console.error('      HTTP-based MCP servers (like Velt Docs) are designed to be');
-      console.error('      accessed through the IDE\'s MCP client, not via direct HTTP.');
-      console.error('      This is an architectural limitation of the MCP protocol.');
-      console.error('');
-      console.error('   ✅ Solution: Using fallback patterns');
-      console.error('      → Patterns are based on Velt\'s documented best practices');
-      console.error('      → Tested and reliable');
-      console.error('      → Installation will succeed');
-      console.error('');
+      // ========================================================================
+      console.error(`   ❌ URL fetch failed: ${urlError.message}`);
+      console.error('   Strategy 3: Using fallback patterns based on known best practices');
       
       const fallbackPatterns = getFallbackPatterns();
       
@@ -226,29 +275,31 @@ export async function queryVeltMCP({ question }) {
         data: fallbackPatterns,
         query: query,
         source: 'fallback',
-        warning: 'Using fallback patterns. Velt Docs MCP unavailable.',
-        message: `⚠️  Using fallback patterns (Velt Docs MCP unavailable). Patterns are based on known best practices.`,
+        warning: 'Using fallback patterns. Both MCP and URL fetch failed.',
+        message: `⚠️  Using fallback patterns (MCP and URL fetch failed). Patterns are based on known best practices.`,
       };
     }
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-    };
   }
 }
 
 /**
  * Makes HTTPS request using Node.js built-in https module
  * (for Node < 18 compatibility)
- * 
+ *
  * @param {string} url - URL to request
  * @param {Object} data - JSON data to send
- * @param {number} timeout - Timeout in milliseconds (default: 10000)
+ * @param {number} timeout - Timeout in milliseconds (default: 5000)
  * @returns {Promise<Object>} Parsed JSON response
  */
-function makeHttpsRequest(url, data, timeout = 10000) {
-  return new Promise((resolve, reject) => {
+function makeHttpsRequest(url, data, timeout = 5000) {
+  // Wrap in Promise.race to guarantee timeout
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timeout after ${timeout}ms`));
+    }, timeout);
+  });
+
+  const requestPromise = new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const postData = JSON.stringify(data);
 
@@ -267,8 +318,19 @@ function makeHttpsRequest(url, data, timeout = 10000) {
 
     const req = https.request(options, (res) => {
       let responseData = '';
+      let responseSize = 0;
+      const maxResponseSize = 10 * 1024 * 1024; // 10MB max
 
       res.on('data', (chunk) => {
+        responseSize += chunk.length;
+
+        // Prevent memory exhaustion
+        if (responseSize > maxResponseSize) {
+          req.destroy();
+          reject(new Error(`Response too large (exceeded ${maxResponseSize} bytes)`));
+          return;
+        }
+
         responseData += chunk;
       });
 
@@ -283,43 +345,19 @@ function makeHttpsRequest(url, data, timeout = 10000) {
     });
 
     req.on('error', (error) => {
-      reject(error);
+      reject(new Error(`Request error: ${error.message}`));
     });
 
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Request timeout'));
+      reject(new Error('Socket timeout'));
     });
 
     req.write(postData);
     req.end();
   });
-}
 
-/**
- * Extracts patterns from Velt documentation website content
- * 
- * @param {string} docsContent - HTML/content from docs.velt.dev
- * @param {string} query - Original query
- * @returns {Object} Extracted patterns
- */
-function extractPatternsFromDocsContent(docsContent, query) {
-  // Try to extract code blocks and patterns from documentation HTML
-  // Look for code examples, import statements, component usage
-  
-  const patterns = getFallbackPatterns();
-  
-  // If we found VeltProvider in content, mark it as found
-  if (docsContent.includes('VeltProvider')) {
-    patterns.source = 'extracted-from-docs';
-  }
-  
-  // If we found VeltComments in content, mark it as found
-  if (docsContent.includes('VeltComments')) {
-    patterns.source = 'extracted-from-docs';
-  }
-  
-  return patterns;
+  return Promise.race([requestPromise, timeoutPromise]);
 }
 
 /**
@@ -331,7 +369,7 @@ function extractPatternsFromDocsContent(docsContent, query) {
 function extractPatternsFromMCPResponse(mcpResult) {
   // The MCP response contains documentation content
   // We need to parse it to extract code patterns
-  
+
   const content = mcpResult?.content || [];
   let patterns = {
     summary: 'Freestyle comments implementation patterns from Velt documentation',
@@ -346,22 +384,22 @@ function extractPatternsFromMCPResponse(mcpResult) {
   for (const item of content) {
     if (item.type === 'text') {
       const text = item.text;
-      
+
       // Look for VeltProvider pattern
       if (text.includes('VeltProvider') && !patterns.providerPattern) {
         patterns.providerPattern = extractCodeBlock(text, 'VeltProvider');
       }
-      
+
       // Look for VeltComments pattern
       if (text.includes('VeltComments') && !text.includes('VeltCommentsSidebar') && !patterns.commentsPattern) {
         patterns.commentsPattern = extractCodeBlock(text, 'VeltComments');
       }
-      
+
       // Look for VeltCommentsSidebar pattern
       if (text.includes('VeltCommentsSidebar') && !patterns.sidebarPattern) {
         patterns.sidebarPattern = extractCodeBlock(text, 'VeltCommentsSidebar');
       }
-      
+
       // Look for environment variables
       if (text.includes('NEXT_PUBLIC_VELT_API_KEY') && !patterns.environmentPattern) {
         patterns.environmentPattern = extractCodeBlock(text, 'NEXT_PUBLIC_VELT_API_KEY');
@@ -393,7 +431,7 @@ function extractCodeBlock(text, keyword) {
   // Try to find code blocks containing the keyword
   const codeBlockRegex = /```(?:tsx?|jsx?|javascript|typescript)?\n([\s\S]*?)```/g;
   let match;
-  
+
   while ((match = codeBlockRegex.exec(text)) !== null) {
     if (match[1].includes(keyword)) {
       return {
@@ -402,8 +440,219 @@ function extractCodeBlock(text, keyword) {
       };
     }
   }
-  
+
   return null;
+}
+
+/**
+ * Fetches HTML page using https module (for Node < 18)
+ * 
+ * @param {string} url - URL to fetch
+ * @returns {Promise<string>} HTML content
+ */
+function fetchHtmlPage(url) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+
+    const options = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname + (urlObj.search || ''),
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html',
+        'User-Agent': 'Velt-MCP-Installer/1.0',
+      },
+      timeout: 5000, // Reduced to 5 seconds for faster failure
+    };
+
+    const req = https.request(options, (res) => {
+      let htmlContent = '';
+
+      res.on('data', (chunk) => {
+        htmlContent += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+        } else {
+          resolve(htmlContent);
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+
+    req.end();
+  });
+}
+
+/**
+ * Extracts patterns from Velt documentation website content
+ * 
+ * @param {string} htmlContent - HTML content from docs.velt.dev
+ * @param {string} query - Original query
+ * @returns {Object} Extracted patterns
+ */
+function extractPatternsFromDocsContent(htmlContent, query) {
+  // Start with fallback patterns
+  const patterns = getFallbackPatterns();
+
+  // Try to extract code blocks from HTML
+  // Look for <pre><code> blocks or markdown code fences in the HTML
+
+  // Extract code blocks from HTML
+  const codeBlockRegex = /<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi;
+  const codeBlocks = [];
+  let match;
+
+  while ((match = codeBlockRegex.exec(htmlContent)) !== null) {
+    const code = match[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .trim();
+
+    if (code.length > 20) { // Only keep substantial code blocks
+      codeBlocks.push(code);
+    }
+  }
+
+  // Try to find patterns in code blocks
+  for (const code of codeBlocks) {
+    // Look for VeltProvider pattern
+    if (code.includes('VeltProvider') && !patterns.providerPattern?.code) {
+      patterns.providerPattern = {
+        description: 'Wrap root layout with VeltProvider',
+        code: code,
+        location: 'app/layout.tsx',
+      };
+    }
+
+    // Look for VeltComments pattern
+    if (code.includes('VeltComments') && !code.includes('VeltCommentsSidebar') && !patterns.commentsPattern?.code) {
+      patterns.commentsPattern = {
+        description: 'Add VeltComments component to enable freestyle comments',
+        code: code,
+        location: 'app/page.tsx',
+      };
+    }
+
+    // Look for VeltCommentsSidebar pattern
+    if (code.includes('VeltCommentsSidebar') && !patterns.sidebarPattern?.code) {
+      patterns.sidebarPattern = {
+        description: 'Add VeltCommentsSidebar for comment UI',
+        code: code,
+        location: 'app/layout.tsx or components',
+      };
+    }
+
+    // Look for environment variables
+    if (code.includes('NEXT_PUBLIC_VELT_API_KEY') && !patterns.environmentPattern?.code) {
+      patterns.environmentPattern = {
+        description: 'Environment variables needed',
+        code: code,
+        location: '.env.local',
+      };
+    }
+  }
+
+  // Mark source if we found patterns
+  if (codeBlocks.length > 0) {
+    patterns.source = 'extracted-from-docs';
+    patterns.summary = 'Freestyle comments implementation patterns extracted from Velt documentation';
+  }
+
+  return patterns;
+}
+
+/**
+ * Detects libraries in the project by checking package.json
+ * 
+ * @param {string} projectPath - Project root path
+ * @returns {Object} Library detection flags
+ */
+export function detectLibraries(projectPath) {
+  const packageJsonPath = path.join(projectPath, 'package.json');
+
+  if (!fs.existsSync(packageJsonPath)) {
+    return {
+      hasReactFlow: false,
+      hasTiptap: false,
+      hasCodeMirror: false,
+      hasAgGrid: false,
+      hasTanStack: false,
+    };
+  }
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    const allDeps = {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {}),
+    };
+
+    // Check for ReactFlow (multiple possible package names)
+    const hasReactFlow = !!(
+      allDeps['reactflow'] ||
+      allDeps['@xyflow/react'] ||
+      allDeps['react-flow-renderer'] ||
+      allDeps['@reactflow/core']
+    );
+
+    // Check for Tiptap
+    const hasTiptap = !!(
+      allDeps['@tiptap/react'] ||
+      allDeps['@tiptap/core'] ||
+      allDeps['tiptap']
+    );
+
+    // Check for CodeMirror
+    const hasCodeMirror = !!(
+      allDeps['@codemirror/state'] ||
+      allDeps['@codemirror/view'] ||
+      allDeps['codemirror']
+    );
+
+    // Check for AG-Grid
+    const hasAgGrid = !!(
+      allDeps['ag-grid-react'] ||
+      allDeps['ag-grid-community'] ||
+      allDeps['ag-grid-enterprise']
+    );
+
+    // Check for TanStack Table
+    const hasTanStack = !!(
+      allDeps['@tanstack/react-table'] ||
+      allDeps['@tanstack/table-core']
+    );
+
+    return {
+      hasReactFlow,
+      hasTiptap,
+      hasCodeMirror,
+      hasAgGrid,
+      hasTanStack,
+    };
+  } catch (error) {
+    console.error(`Error detecting libraries: ${error.message}`);
+    return {
+      hasReactFlow: false,
+      hasTiptap: false,
+      hasCodeMirror: false,
+      hasAgGrid: false,
+      hasTanStack: false,
+    };
+  }
 }
 
 /**
