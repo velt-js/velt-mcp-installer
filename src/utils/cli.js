@@ -47,15 +47,21 @@ export function mapFeaturesToCliFlags({
   const hasCrdt = normalizedFeatures.includes('crdt') && crdtType;
 
   // Validate CRDT type if provided
-  const validCrdtTypes = ['tiptap', 'codemirror', 'reactflow', 'blocknote'];
-  const isCrdtValid = hasCrdt && validCrdtTypes.includes(crdtType.toLowerCase());
-  if (hasCrdt && !isCrdtValid) {
+  // Recognized types (accepted by MCP): includes blocknote which is handled via docs, not CLI flag
+  const recognizedCrdtTypes = ['tiptap', 'codemirror', 'reactflow', 'blocknote'];
+  // CLI-supported types (have a corresponding --X-crdt flag)
+  const cliFlagCrdtTypes = ['tiptap', 'codemirror', 'reactflow'];
+  const isCrdtRecognized = hasCrdt && recognizedCrdtTypes.includes(crdtType.toLowerCase());
+  const isCrdtCliSupported = hasCrdt && cliFlagCrdtTypes.includes(crdtType.toLowerCase());
+  if (hasCrdt && !isCrdtRecognized) {
     console.error(`   ⚠️  Unknown CRDT type "${crdtType}", skipping CRDT flag`);
+  } else if (hasCrdt && !isCrdtCliSupported) {
+    console.error(`   ℹ️  CRDT type "${crdtType}" is handled via docs/plan, no CLI flag generated`);
   }
 
   // Determine flag strategy
-  // --all requires a valid CRDT flag, so only use it when we have all features with a valid CRDT type
-  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && isCrdtValid;
+  // --all requires a CLI-supported CRDT flag, so only use it when we have all features with a supported CRDT type
+  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && isCrdtCliSupported;
 
   if (useAllFlag) {
     // Use --all with CRDT type
@@ -75,7 +81,7 @@ export function mapFeaturesToCliFlags({
     if (hasNotifications) {
       flags.push('--notifications');
     }
-    if (isCrdtValid) {
+    if (isCrdtCliSupported) {
       flags.push(`--${crdtType.toLowerCase()}-crdt`);
     }
   }
@@ -285,8 +291,12 @@ export async function runVeltCliWithFeatures({
   if (features.includes('cursors')) {
     cliFeatures.push('cursors');
   }
-  if (features.includes('crdt') && crdtEditorType) {
-    cliFeatures.push('crdt');
+  if (features.includes('crdt')) {
+    if (crdtEditorType) {
+      cliFeatures.push('crdt');
+    } else {
+      console.error('   ⚠️  CRDT feature selected but no crdtEditorType provided — CRDT will be skipped');
+    }
   }
 
   console.error(`   Requested features: ${features.join(', ')}`);

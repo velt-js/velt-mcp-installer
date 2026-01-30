@@ -14,7 +14,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { installVeltFreestyle } from './tools/orchestrator.js';
 import { installVeltUnified } from './tools/unified-installer.js';
-import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
+import { takeScreenshot } from './utils/screenshot.js';
 import { detectCommentPlacement } from './utils/comment-detector.js';
 
 /**
@@ -177,7 +177,7 @@ export async function createServer() {
           '\n🔷 IF USER SELECTS FEATURES: GUIDED MODE 🔷' +
           '\n=========================================' +
           '\n\n  STEP 5 - VELTPROVIDER LOCATION:' +
-          '\n    Ask: "Where should VeltProvider be installed? (app/layout.tsx recommended)"' +
+          '\n    Ask: "Where should VeltProvider be installed? (app/page.tsx recommended)"' +
           '\n    WAIT for response.' +
           '\n\n  STEP 6 - CORNER POSITION:' +
           '\n    Ask: "Which corner for Velt features? (top-left/top-right/bottom-left/bottom-right)"' +
@@ -266,7 +266,7 @@ export async function createServer() {
             },
             crdtEditorType: {
               type: 'string',
-              enum: ['tiptap', 'codemirror', 'blocknote'],
+              enum: ['tiptap', 'codemirror', 'blocknote', 'reactflow'],
               description: 'CRDT editor type (if crdt feature selected)',
             },
             headerPosition: {
@@ -276,7 +276,7 @@ export async function createServer() {
             },
             veltProviderLocation: {
               type: 'string',
-              description: 'Where to install VeltProvider. Default: "app/layout.tsx"',
+              description: 'Where to install VeltProvider. Default: "app/page.tsx"',
             },
             discoveryConsent: {
               type: 'string',
@@ -712,7 +712,6 @@ Configuration will be used to install Velt with freestyle comments.`,
             projectPath: args.projectPath,
             apiKey: args?.apiKey || null, // Optional - will read from .env if not provided
             authToken: args?.authToken || null, // Optional
-            server,
           });
           return {
             content: [

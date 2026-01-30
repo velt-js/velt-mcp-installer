@@ -26,10 +26,9 @@ const __dirname = path.dirname(__filename);
  * @param {string} params.projectPath - Path to Next.js project
  * @param {string} [params.apiKey] - Velt API key (optional, will read from .env if not provided)
  * @param {string} [params.authToken] - Velt auth token (optional)
- * @param {Server} params.server - MCP server instance
  * @returns {Promise<Object>} Installation report
  */
-export async function installVeltFreestyle({ projectPath, apiKey, authToken, server }) {
+export async function installVeltFreestyle({ projectPath, apiKey, authToken }) {
   const report = {
     status: 'in_progress',
     steps: [],

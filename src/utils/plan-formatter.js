@@ -142,7 +142,7 @@ export function createVeltCommentsPlan(options) {
   // Add warning about only implementing requested features
   steps.push({
     title: `⚠️ CRITICAL: Only implement ${commentTypeTitle} Comments`,
-    details: `You are ONLY installing ${commentTypeTitle} Comments. DO NOT implement: VeltNotificationsTool, VeltPresence, VeltCursor, VeltRecorder, or any other components unless the user specifically requested them. Only use authentication, user setup, and document setup from CLI. Get ${commentTypeTitle} Comments implementation from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
+    details: `You are ONLY installing ${commentTypeTitle} Comments. DO NOT implement: VeltNotificationsTool, VeltPresence, VeltCursor, VeltRecorder, or any other components unless the user specifically requested them. Only use authentication, user setup, and document setup from CLI. Get ${commentTypeTitle} Comments implementation from: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
   });
 
   // Step 2: Use CLI-generated Velt components
@@ -210,7 +210,7 @@ export default function Page() {
 1. Add AppUserProvider wrapper to app/layout.tsx
 2. Add VeltProvider to ${locationText} using useVeltAuthProvider hook
 3. Import VeltCollaboration for feature components
-4. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+4. Follow the markdown documentation for ${commentType} comment-specific implementation: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}
 
 **CRITICAL - For Tiptap/Lexical/Slate Comments:**
 - ✅ **FIND EXISTING EDITOR** - Search the project for existing Tiptap/Lexical/Slate editor components
@@ -273,7 +273,7 @@ export default function Page() {
   );
 }
 
-// For ${commentType} comments: Follow implementation at ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
+// For ${commentType} comments: Follow implementation at ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}`,
       },
     ],
   });
@@ -558,7 +558,7 @@ export function useVeltAuthProvider() {
 - Use skills as your FIRST reference for implementation details
 
 **SECONDARY SOURCE: Docs URLs (only if skills don't cover it):**
-- ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+- ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}
 
 **TERTIARY SOURCE: Velt Docs MCP:**
 - Only use for user follow-up questions AFTER implementation
@@ -619,7 +619,7 @@ After installation, open your browser DevTools Console (Press F12 or Cmd+Option+
 - **velt-comments-best-practices** — ${commentType} comments implementation patterns
 
 **Secondary: Docs URLs**
-- This feature: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+- This feature: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}
 - Pattern: https://docs.velt.dev/[feature]/[page].md
 
 **Tertiary: Velt Docs MCP**

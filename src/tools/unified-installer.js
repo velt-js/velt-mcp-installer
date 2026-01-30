@@ -8,10 +8,9 @@
  * Uses npx @velt-js/add-velt to run the published Velt CLI package.
  */
 
-import { runVeltCli, runVeltCliWithFeatures, runVeltCliCoreOnly } from '../utils/cli.js';
+import { runVeltCliWithFeatures, runVeltCliCoreOnly } from '../utils/cli.js';
 import { detectLibraries } from '../utils/velt-mcp.js';
-import { getFrameworkInfo, ProjectType } from '../utils/framework-detection.js';
-import { scanAndFixUseClient } from '../utils/use-client.js';
+import { getFrameworkInfo } from '../utils/framework-detection.js';
 import {
   fetchCommentImplementation,
   fetchCrdtImplementation,
@@ -30,7 +29,6 @@ import {
 } from '../utils/validation.js';
 import {
   discoverHostAppWiring,
-  formatDiscoveryForPlan,
   formatDiscoveryForVerification,
   getManualWiringQuestionnaire,
   createWiringFromManualAnswers,
@@ -581,6 +579,9 @@ export async function runGuidedPlanStage({
     }
 
     // Fetch CRDT implementation
+    if (features.includes('crdt') && !crdtEditorType) {
+      console.error('   ⚠️  CRDT feature selected but no crdtEditorType provided — skipping CRDT docs fetch');
+    }
     if (features.includes('crdt') && crdtEditorType) {
       fetchPromises.push(
         fetchCrdtImplementation({ editorType: crdtEditorType, mcpClient: null })
@@ -602,26 +603,40 @@ export async function runGuidedPlanStage({
 
     await Promise.all(fetchPromises);
 
-    // Extract results
-    const implementation = fetchResults.comments || null;
-    const crdtImplementation = fetchResults.crdt || null;
+    // Extract results — filter out error objects so they don't pass as valid implementations
+    const isValidResult = (r) => r && !r.error;
+
+    const implementation = isValidResult(fetchResults.comments) ? fetchResults.comments : null;
+    const crdtImplementation = isValidResult(fetchResults.crdt) ? fetchResults.crdt : null;
     const featureImplementations = {};
 
     for (const [key, value] of Object.entries(fetchResults)) {
       if (key !== 'comments' && key !== 'crdt') {
-        featureImplementations[key] = value;
+        if (isValidResult(value)) {
+          featureImplementations[key] = value;
+        }
       }
     }
 
     // Log results
     if (implementation) {
       console.error(`   ✅ Got ${commentType} comments from: ${implementation.source || 'docs'}`);
+    } else if (fetchResults.comments?.error) {
+      console.error(`   ⚠️  Failed to fetch ${commentType} comments: ${fetchResults.comments.error}`);
     }
     if (crdtImplementation) {
       console.error(`   ✅ Got ${crdtEditorType} CRDT from: ${crdtImplementation.source || 'docs'}`);
+    } else if (fetchResults.crdt?.error) {
+      console.error(`   ⚠️  Failed to fetch ${crdtEditorType} CRDT: ${fetchResults.crdt.error}`);
     }
     for (const [feature, impl] of Object.entries(featureImplementations)) {
       console.error(`   ✅ Got ${feature} from: ${impl.source || 'docs'}`);
+    }
+    // Log failed feature fetches
+    for (const [key, value] of Object.entries(fetchResults)) {
+      if (key !== 'comments' && key !== 'crdt' && value?.error) {
+        console.error(`   ⚠️  Failed to fetch ${key}: ${value.error}`);
+      }
     }
 
     report.steps.push({
