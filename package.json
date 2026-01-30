@@ -7,6 +7,16 @@
   "bin": {
     "velt-mcp-server": "./bin/mcp-server.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "!src/utils/local-cli.js",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "start": "node bin/mcp-server.js",
     "dev": "node --watch bin/mcp-server.js"

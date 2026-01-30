@@ -2,6 +2,20 @@
 
 An MCP (Model Context Protocol) server that provides AI-assisted installation of Velt collaboration features into React and Next.js projects.
 
+## Installation
+
+Install the package via npm:
+
+```bash
+npm install -g @velt-js/mcp-installer
+```
+
+Or run it directly with `npx` (no install required):
+
+```bash
+npx -y @velt-js/mcp-installer
+```
+
 ## Setup
 
 Add the Velt MCP server to your coding IDE. Pick the section that matches your editor.
