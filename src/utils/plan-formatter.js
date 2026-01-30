@@ -1479,9 +1479,7 @@ export function createCliOnlyReport({ cliResult, qaResult, apiKey, cliMethod, fr
 
   // CLI execution method info
   const cliMethodInfo = cliMethod
-    ? cliMethod === 'linked'
-      ? '**CLI Method:** npm-linked binary (`add-velt`)'
-      : '**CLI Method:** Direct execution (`node bin/velt.js`)'
+    ? '**CLI Method:** npx @velt-js/add-velt'
     : '';
 
   // Framework info

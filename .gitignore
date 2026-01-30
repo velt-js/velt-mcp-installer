@@ -21,3 +21,6 @@ build/
 coverage/
 .nyc_output/
 
+# Local dev CLI (not shipped)
+src/utils/local-cli.js
+

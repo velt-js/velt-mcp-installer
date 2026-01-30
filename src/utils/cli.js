@@ -1,19 +1,97 @@
 /**
  * Velt CLI Execution Utilities
  *
- * Handles running the local add-velt CLI tool.
- * This module wraps local-cli.js to provide backward compatibility
- * with existing code while using the new local CLI execution.
+ * Handles running the Velt CLI via npx @velt-js/add-velt.
+ * This module spawns npx to execute the published npm package.
  */
 
-import {
-  executeVeltCli,
-  mapFeaturesToCliFlags,
-  resolveLocalCliBin,
-} from './local-cli.js';
+import { spawn } from 'child_process';
 
 /**
- * Runs the local Velt CLI with specified options
+ * Maps MCP feature selections to CLI flags
+ *
+ * CLI Flags supported by @velt-js/add-velt:
+ *   --presence          Add presence (VeltPresence - shows online users)
+ *   --cursors           Add cursors (VeltCursor - shows live cursor positions)
+ *   --comments          Add comments (VeltComments, VeltCommentsSidebar)
+ *   --notifications     Add notifications (VeltNotificationsTool)
+ *   --reactflow-crdt    Add ReactFlow CRDT
+ *   --tiptap-crdt       Add Tiptap CRDT
+ *   --codemirror-crdt   Add CodeMirror CRDT
+ *   --all               Enable presence + cursors + comments + notifications + CRDT (REQUIRES a CRDT flag!)
+ *   --force, -f         Force overwrite existing files
+ *   --legacy-peer-deps  Use legacy peer deps (npm only)
+ *
+ * @param {Object} params
+ * @param {string[]} [params.features=[]] - Features to install: 'presence', 'cursors', 'comments', 'notifications', 'crdt'
+ * @param {string} [params.crdtType=null] - CRDT type: 'tiptap', 'codemirror', 'reactflow'
+ * @param {boolean} [params.force=false] - Force overwrite files
+ * @param {boolean} [params.legacyPeerDeps=false] - Use legacy peer deps
+ * @returns {string[]} Array of CLI flags
+ */
+export function mapFeaturesToCliFlags({
+  features = [],
+  crdtType = null,
+  force = false,
+  legacyPeerDeps = false,
+}) {
+  const flags = [];
+
+  // Normalize features to lowercase
+  const normalizedFeatures = features.map(f => f.toLowerCase());
+
+  const hasPresence = normalizedFeatures.includes('presence');
+  const hasCursors = normalizedFeatures.includes('cursors');
+  const hasComments = normalizedFeatures.includes('comments');
+  const hasNotifications = normalizedFeatures.includes('notifications');
+  const hasCrdt = normalizedFeatures.includes('crdt') && crdtType;
+
+  // Validate CRDT type if provided
+  const validCrdtTypes = ['tiptap', 'codemirror', 'reactflow'];
+  if (hasCrdt && !validCrdtTypes.includes(crdtType.toLowerCase())) {
+    console.error(`   ⚠️  Unknown CRDT type "${crdtType}", skipping CRDT flag`);
+  }
+
+  // Determine flag strategy
+  // --all requires a CRDT flag, so only use it when we have all features
+  const useAllFlag = hasPresence && hasCursors && hasComments && hasNotifications && hasCrdt;
+
+  if (useAllFlag) {
+    // Use --all with CRDT type
+    flags.push('--all');
+    flags.push(`--${crdtType.toLowerCase()}-crdt`);
+  } else {
+    // Build individual flags
+    if (hasPresence) {
+      flags.push('--presence');
+    }
+    if (hasCursors) {
+      flags.push('--cursors');
+    }
+    if (hasComments) {
+      flags.push('--comments');
+    }
+    if (hasNotifications) {
+      flags.push('--notifications');
+    }
+    if (hasCrdt && validCrdtTypes.includes(crdtType.toLowerCase())) {
+      flags.push(`--${crdtType.toLowerCase()}-crdt`);
+    }
+  }
+
+  // Add installation flags
+  if (force) {
+    flags.push('--force');
+  }
+  if (legacyPeerDeps) {
+    flags.push('--legacy-peer-deps');
+  }
+
+  return flags;
+}
+
+/**
+ * Runs the Velt CLI via npx @velt-js/add-velt
  *
  * @param {Object} params
  * @param {string} params.installDir - Directory to install Velt in
@@ -40,24 +118,115 @@ export async function runVeltCli({
     console.error(`   Directory: ${installDir}`);
     console.error(`   API Key: ${apiKey ? `${apiKey.substring(0, 8)}...` : '(not provided)'}`);
 
-    // Execute via local CLI
-    const result = await executeVeltCli({
-      projectPath: installDir,
-      apiKey,
-      authToken,
+    // Map features to CLI flags
+    const flags = mapFeaturesToCliFlags({
       features,
       crdtType,
       force,
       legacyPeerDeps,
     });
 
-    // Add backward-compatible fields
+    console.error(`   🏷️  Features: ${features.length > 0 ? features.join(', ') : '(core only)'}`);
+    console.error(`   🚩 Flags: ${flags.length > 0 ? flags.join(' ') : '(none)'}`);
+
+    // Build environment with API credentials
+    const env = {
+      ...process.env,
+      VELT_API_KEY: apiKey,
+      NEXT_PUBLIC_VELT_API_KEY: apiKey,
+    };
+
+    if (authToken) {
+      env.VELT_AUTH_TOKEN = authToken;
+    }
+
+    // Build npx command
+    const npxArgs = ['@velt-js/add-velt', ...flags];
+    const fullCommand = `npx ${npxArgs.join(' ')}`;
+
+    console.error('\n   ═══════════════════════════════════════════════════════════');
+    console.error(`   📋 EXACT CLI COMMAND: ${fullCommand}`);
+    console.error('   ═══════════════════════════════════════════════════════════\n');
+
+    // Execute via npx
+    const result = await new Promise((resolve) => {
+      let stdout = '';
+      let stderr = '';
+      const timeout = 120000;
+
+      const proc = spawn('npx', npxArgs, {
+        cwd: installDir,
+        env,
+        stdio: ['inherit', 'pipe', 'pipe'],
+        shell: process.platform === 'win32',
+      });
+
+      const timeoutId = setTimeout(() => {
+        proc.kill('SIGTERM');
+        resolve({
+          success: false,
+          error: `CLI execution timed out after ${timeout}ms`,
+          method: 'npx',
+          command: fullCommand,
+          exitCode: -1,
+          stdout,
+          stderr,
+        });
+      }, timeout);
+
+      proc.stdout?.on('data', (data) => {
+        stdout += data.toString();
+        process.stderr.write(data);
+      });
+
+      proc.stderr?.on('data', (data) => {
+        stderr += data.toString();
+        process.stderr.write(data);
+      });
+
+      proc.on('error', (err) => {
+        clearTimeout(timeoutId);
+        resolve({
+          success: false,
+          error: err.message,
+          method: 'npx',
+          command: fullCommand,
+          exitCode: 1,
+          stdout,
+          stderr,
+        });
+      });
+
+      proc.on('close', (code) => {
+        clearTimeout(timeoutId);
+        resolve({
+          success: code === 0,
+          exitCode: code,
+          method: 'npx',
+          command: fullCommand,
+          stdout,
+          stderr,
+          output: stdout + stderr,
+        });
+      });
+    });
+
+    // Log result summary
+    if (result.success) {
+      console.error(`\n   ✅ CLI completed successfully (method: ${result.method})`);
+    } else {
+      console.error(`\n   ⚠️  CLI exited with code ${result.exitCode} (method: ${result.method})`);
+      if (result.error) {
+        console.error(`   Error: ${result.error}`);
+      }
+    }
+
     return {
       success: result.success,
       exitCode: result.exitCode,
       output: result.output,
       command: result.command,
-      method: result.method, // 'linked' or 'direct' - new field
+      method: result.method,
       error: result.error,
     };
   } catch (error) {
@@ -99,7 +268,7 @@ export async function runVeltCliWithFeatures({
   console.error('\n🎯 Running Velt CLI with feature flags');
 
   // Map MCP features to CLI-compatible features
-  // The local CLI supports: comments, notifications, presence, cursors, and CRDT types
+  // The CLI supports: comments, notifications, presence, cursors, and CRDT types
   // Only 'recorder' is handled by the MCP guided plan (not supported by CLI)
   const cliFeatures = [];
 
@@ -173,7 +342,11 @@ export async function runVeltCliCoreOnly({
  * @returns {Object} CLI resolution result
  */
 export function getCliResolutionInfo() {
-  return resolveLocalCliBin();
+  return {
+    method: 'npx',
+    command: 'npx @velt-js/add-velt',
+    path: null,
+  };
 }
 
 /**
@@ -192,4 +365,5 @@ export default {
   runVeltCliCoreOnly,
   getCliResolutionInfo,
   previewCliFlags,
+  mapFeaturesToCliFlags,
 };

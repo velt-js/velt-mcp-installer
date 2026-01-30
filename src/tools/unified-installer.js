@@ -5,8 +5,7 @@
  * 1. CLI-only (SKIP path): Run Velt CLI scaffolding only, basic QA
  * 2. Guided path: Generate plan, await approval, apply edits, full QA
  *
- * Uses local Velt CLI from /Users/yoenzhang/Downloads/add-velt-next-js
- * with robust resolution (prefer npm link, fallback to direct execution).
+ * Uses npx @velt-js/add-velt to run the published Velt CLI package.
  */
 
 import { runVeltCli, runVeltCliWithFeatures, runVeltCliCoreOnly } from '../utils/cli.js';

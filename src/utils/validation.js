@@ -119,14 +119,12 @@ export function validateCliResolution() {
   const resolution = getCliResolutionInfo();
 
   return {
-    name: 'Local CLI Resolution',
+    name: 'CLI Resolution',
     status: resolution.method === 'error' ? 'fail' : 'pass',
     method: resolution.method,
     message: resolution.method === 'error'
       ? `CLI not found: ${resolution.error}`
-      : resolution.method === 'linked'
-        ? `Using npm-linked binary: ${resolution.path}`
-        : `Using direct execution: ${resolution.path}`,
+      : `Using npx @velt-js/add-velt`,
     path: resolution.path,
   };
 }
@@ -153,11 +151,9 @@ export async function validateBasicCliInstall({ projectPath, cliResult = null })
       checks.push({
         name: 'CLI Execution Method',
         status: cliResult.method === 'error' ? 'fail' : 'pass',
-        message: cliResult.method === 'linked'
-          ? 'Used npm-linked binary (add-velt)'
-          : cliResult.method === 'direct'
-            ? 'Used direct execution (node bin/velt.js)'
-            : `CLI method: ${cliResult.method}`,
+        message: cliResult.method === 'npx'
+          ? 'Used npx @velt-js/add-velt'
+          : `CLI method: ${cliResult.method}`,
       });
 
       if (cliResult.method !== 'error') passed++;
@@ -336,7 +332,7 @@ export async function validateInstallation({ projectPath, cliResult = null }) {
         name: 'CLI Execution',
         status: cliResult.success ? 'pass' : 'warning',
         message: cliResult.success
-          ? `CLI succeeded via ${cliResult.method === 'linked' ? 'npm link' : 'direct execution'}`
+          ? `CLI succeeded via ${cliResult.method === 'npx' ? 'npx @velt-js/add-velt' : cliResult.method}`
           : `CLI had issues (${cliResult.method}) but may have created files`,
       });
 
