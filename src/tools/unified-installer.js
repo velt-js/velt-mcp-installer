@@ -29,6 +29,14 @@ import {
   validateInstallation,
   applyUseClientFixes as applyFixes,
 } from '../utils/validation.js';
+import {
+  discoverHostAppWiring,
+  formatDiscoveryForPlan,
+  formatDiscoveryForVerification,
+  getManualWiringQuestionnaire,
+  createWiringFromManualAnswers,
+  resolveWiringFromVerification,
+} from '../utils/host-app-discovery.js';
 import path from 'path';
 
 /**
@@ -43,7 +51,7 @@ function maskApiKey(apiKey) {
  * Unified Velt Installer - Main Entry Point
  *
  * @param {Object} params - Installation parameters
- * @param {string} params.projectPath - Path to Next.js project (REQUIRED)
+ * @param {string} params.projectPath - Path to project (REQUIRED)
  * @param {string} params.apiKey - Velt API key (REQUIRED)
  * @param {string} params.authToken - Velt Auth Token (REQUIRED)
  * @param {string} [params.mode='guided'] - Installation mode: 'guided' | 'cli-only'
@@ -54,8 +62,11 @@ function maskApiKey(apiKey) {
  * @param {string} [params.crdtEditorType=null] - CRDT editor type
  * @param {string} [params.headerPosition='top-right'] - Sidebar header position
  * @param {string} [params.veltProviderLocation='app/layout.tsx'] - VeltProvider location
+ * @param {string} [params.discoveryConsent] - User consent for codebase scanning: 'yes' | 'no'
+ * @param {Object} [params.discoveryVerification] - Verification of scan results
+ * @param {Object} [params.manualWiring] - Manual wiring answers (if consent='no')
  * @param {Object} [params.server=null] - MCP server instance
- * @returns {Promise<Object>} Installation result
+ * @returns {Promise<Object>} Installation result with status field
  */
 export async function installVeltUnified(params) {
   const {
@@ -70,6 +81,9 @@ export async function installVeltUnified(params) {
     crdtEditorType = null,
     headerPosition = 'top-right',
     veltProviderLocation = 'app/layout.tsx',
+    discoveryConsent,      // NEW: 'yes' | 'no' | undefined
+    discoveryVerification, // NEW: { status, overrides? }
+    manualWiring,          // NEW: { documentId, user, auth, insertion }
     server = null,
   } = params;
 
@@ -136,6 +150,10 @@ export async function installVeltUnified(params) {
         headerPosition,
         veltProviderLocation,
         frameworkInfo,
+        // NEW: Pass discovery-related params
+        discoveryConsent,
+        discoveryVerification,
+        manualWiring,
       });
     }
 
@@ -294,8 +312,17 @@ export async function runCliOnlyInstall({ projectPath, apiKey, authToken, framew
 /**
  * Guided Plan Stage
  *
- * Runs Velt CLI with feature flags, scans codebase, fetches docs, generates implementation plan.
- * Does NOT apply any changes - returns plan for user approval.
+ * Multi-step flow with discovery consent and verification:
+ * 1. Run CLI with feature flags
+ * 2. Scan codebase
+ * 3. Check discovery consent:
+ *    - No consent → return awaiting_discovery_consent
+ *    - consent=yes, no verification → run scan, return awaiting_discovery_verification
+ *    - consent=yes, verification provided → use verified/overridden results
+ *    - consent=no, no manualWiring → return awaiting_manual_wiring_answers
+ *    - consent=no, manualWiring provided → use manual answers
+ * 4. Fetch docs
+ * 5. Generate plan with wiring data
  *
  * @param {Object} params
  * @param {string} params.projectPath - Path to project
@@ -307,7 +334,10 @@ export async function runCliOnlyInstall({ projectPath, apiKey, authToken, framew
  * @param {string} params.headerPosition - Header position
  * @param {string} params.veltProviderLocation - VeltProvider location
  * @param {Object} params.frameworkInfo - Framework detection info
- * @returns {Promise<Object>} Plan generation result
+ * @param {string} [params.discoveryConsent] - 'yes' | 'no' | undefined
+ * @param {Object} [params.discoveryVerification] - { status, overrides? }
+ * @param {Object} [params.manualWiring] - { documentId, user, auth, insertion }
+ * @returns {Promise<Object>} Plan generation result with status field
  */
 export async function runGuidedPlanStage({
   projectPath,
@@ -319,9 +349,12 @@ export async function runGuidedPlanStage({
   headerPosition,
   veltProviderLocation,
   frameworkInfo,
+  discoveryConsent,
+  discoveryVerification,
+  manualWiring,
 }) {
   const report = {
-    status: 'plan_generated',
+    status: 'in_progress',
     mode: 'guided',
     stage: 'plan',
     steps: [],
@@ -343,7 +376,7 @@ export async function runGuidedPlanStage({
     console.error('');
 
     // Step 1: Run Velt CLI with feature flags
-    console.error('⚙️  Step 1/4: Running Velt CLI with feature flags...');
+    console.error('⚙️  Step 1/5: Running Velt CLI with feature flags...');
     const cliResult = await runVeltCliWithFeatures({
       projectPath,
       apiKey,
@@ -366,9 +399,9 @@ export async function runGuidedPlanStage({
     });
 
     if (cliResult.success) {
-      console.error(`✅ Step 1/4: Velt CLI completed (via ${cliResult.method})\n`);
+      console.error(`✅ Step 1/5: Velt CLI completed (via ${cliResult.method})\n`);
     } else {
-      console.error(`⚠️  Step 1/4: Velt CLI completed with warnings (via ${cliResult.method})\n`);
+      console.error(`⚠️  Step 1/5: Velt CLI completed with warnings (via ${cliResult.method})\n`);
     }
 
     // Step 1.5: Apply "use client" fixes for Next.js
@@ -383,7 +416,7 @@ export async function runGuidedPlanStage({
     }
 
     // Step 2: Scan codebase (detect libraries)
-    console.error('🔍 Step 2/4: Scanning codebase...');
+    console.error('🔍 Step 2/5: Scanning codebase...');
     const libraryDetection = detectLibraries(projectPath);
     const detectedLibs = Object.entries(libraryDetection)
       .filter(([_, detected]) => detected)
@@ -406,10 +439,135 @@ export async function runGuidedPlanStage({
       },
     });
 
-    console.error('✅ Step 2/4: Codebase scanned\n');
+    console.error('✅ Step 2/5: Codebase scanned\n');
 
-    // Step 3: Fetch implementation docs (parallel)
-    console.error('📚 Step 3/4: Fetching implementation details from Velt Docs...');
+    // ============================================================
+    // Step 3: Discovery Consent Gate
+    // ============================================================
+
+    // 3A: No consent provided yet → ask for consent
+    if (!discoveryConsent) {
+      console.error('🔍 Step 3/5: Awaiting discovery consent...\n');
+      report.status = 'awaiting_discovery_consent';
+      report.cliMethod = cliResult.method;
+      report.cliResult = {
+        success: cliResult.success,
+        method: cliResult.method,
+        command: cliResult.command,
+      };
+      report.frameworkInfo = {
+        projectType: frameworkInfo.projectType,
+        needsUseClient: frameworkInfo.needsUseClient,
+      };
+      report.message = 'CLI scaffolding complete. Ready to discover integration points.';
+      report.nextAction = {
+        question: 'Do you want me to scan your codebase to infer Document ID, User identity, setDocuments placement, and JWT/Auth wiring?',
+        options: [
+          { value: 'yes', label: 'YES (recommended) - Scan codebase automatically' },
+          { value: 'no', label: 'NO - I\'ll provide the wiring info manually' },
+        ],
+      };
+      return report;
+    }
+
+    // 3B: Consent = YES → scan path
+    let wiring = null;
+    let discoveryResult = null;
+
+    if (discoveryConsent === 'yes') {
+      console.error('🔎 Step 3/5: Running host app wiring discovery...');
+      discoveryResult = discoverHostAppWiring(projectPath);
+
+      report.steps.push({
+        step: 3,
+        name: 'host_app_discovery',
+        status: 'complete',
+        result: {
+          totalSignals: discoveryResult.summary.totalSignals,
+          questionsCount: discoveryResult.summary.questionsForDeveloper.length,
+          documentIdConfidence: discoveryResult.documentId.confidence,
+          userAuthConfidence: discoveryResult.user.confidence,
+          authProvider: discoveryResult.user.authProvider,
+          recommendedSetupLocation: discoveryResult.setDocuments.recommendedLocation?.file,
+        },
+      });
+
+      console.error(`   Found ${discoveryResult.summary.totalSignals} signals\n`);
+
+      // 3B-i: Scan done but no verification yet → ask for verification
+      if (!discoveryVerification) {
+        console.error('   ⏸️  Awaiting user verification of scan results...\n');
+        report.status = 'awaiting_discovery_verification';
+        report.discovery = discoveryResult;
+        report.formattedFindings = formatDiscoveryForVerification(discoveryResult);
+        report.cliMethod = cliResult.method;
+        report.frameworkInfo = {
+          projectType: frameworkInfo.projectType,
+          needsUseClient: frameworkInfo.needsUseClient,
+        };
+        report.message = 'Discovery scan complete. Please verify the findings.';
+        report.nextAction = {
+          question: 'Are these findings correct?',
+          options: [
+            { value: 'confirmed', label: 'CONFIRM ALL - Findings are correct' },
+            { value: 'edited', label: 'EDIT - I need to correct some items' },
+            { value: 'unsure', label: 'UNSURE - Need human help to determine this' },
+          ],
+        };
+        return report;
+      }
+
+      // 3B-ii: Verification provided → resolve wiring
+      console.error('   ✅ Verification received, resolving wiring...\n');
+      wiring = resolveWiringFromVerification(discoveryResult, discoveryVerification);
+
+    } else if (discoveryConsent === 'no') {
+      // 3C: Consent = NO → manual path
+      console.error('🔎 Step 3/5: Manual wiring path (user declined scanning)...');
+
+      // 3C-i: No manual wiring yet → ask questionnaire
+      if (!manualWiring) {
+        console.error('   ⏸️  Awaiting manual wiring answers...\n');
+        report.status = 'awaiting_manual_wiring_answers';
+        report.questionnaire = getManualWiringQuestionnaire();
+        report.cliMethod = cliResult.method;
+        report.frameworkInfo = {
+          projectType: frameworkInfo.projectType,
+          needsUseClient: frameworkInfo.needsUseClient,
+        };
+        report.message = 'Please provide wiring information manually.';
+        return report;
+      }
+
+      // 3C-ii: Manual wiring provided → use it
+      console.error('   ✅ Manual wiring received, processing...\n');
+      wiring = createWiringFromManualAnswers(manualWiring);
+    }
+
+    // At this point we MUST have wiring data
+    if (!wiring) {
+      throw new Error('Internal error: wiring data not resolved after discovery/manual flow');
+    }
+
+    report.steps.push({
+      step: 3.5,
+      name: 'wiring_resolved',
+      status: 'complete',
+      result: {
+        source: wiring.source,
+        hasTodos: wiring.todos.length > 0,
+        todoCount: wiring.todos.length,
+      },
+    });
+
+    if (wiring.todos.length > 0) {
+      console.error(`   ⚠️  ${wiring.todos.length} item(s) marked as TODO (need developer input)\n`);
+    }
+
+    // ============================================================
+    // Step 4: Fetch implementation docs (parallel)
+    // ============================================================
+    console.error('📚 Step 4/5: Fetching implementation details from Velt Docs...');
 
     const fetchPromises = [];
     const fetchResults = {};
@@ -468,7 +626,7 @@ export async function runGuidedPlanStage({
     }
 
     report.steps.push({
-      step: 3,
+      step: 4,
       name: 'fetch_implementation',
       status: 'complete',
       result: {
@@ -478,10 +636,12 @@ export async function runGuidedPlanStage({
       },
     });
 
-    console.error('✅ Step 3/4: Implementation details fetched\n');
+    console.error('✅ Step 4/5: Implementation details fetched\n');
 
-    // Step 4: Generate plan (do NOT apply)
-    console.error('📋 Step 4/4: Generating implementation plan...');
+    // ============================================================
+    // Step 5: Generate plan with wiring data
+    // ============================================================
+    console.error('📋 Step 5/5: Generating implementation plan...');
 
     const plan = features.length > 1 || (features.length === 1 && features[0] !== 'comments')
       ? createMultiFeaturePlan({
@@ -495,7 +655,8 @@ export async function runGuidedPlanStage({
           headerPosition,
           veltProviderLocation,
           crdtEditorType,
-          frameworkInfo, // Pass framework info to plan
+          frameworkInfo,
+          wiring, // Pass resolved wiring data
         })
       : createVeltCommentsPlan({
           commentType,
@@ -505,16 +666,53 @@ export async function runGuidedPlanStage({
           headerPosition,
           veltProviderLocation,
           crdtEditorType,
-          frameworkInfo, // Pass framework info to plan
+          frameworkInfo,
+          wiring, // Pass resolved wiring data
         });
 
+    // Append wiring section to the plan
+    let wiringSection = `\n## 🔌 Host App Wiring (${wiring.source})\n\n`;
+
+    if (wiring.documentId && !wiring.documentId.unsure) {
+      wiringSection += `### Document ID\n`;
+      wiringSection += `- **Method**: ${wiring.documentId.method}\n`;
+      if (wiring.documentId.filePath) wiringSection += `- **File**: \`${wiring.documentId.filePath}\`\n`;
+      if (wiring.documentId.variableName) wiringSection += `- **Variable**: \`${wiring.documentId.variableName}\`\n`;
+      wiringSection += '\n';
+    }
+
+    if (wiring.user && !wiring.user.unsure) {
+      wiringSection += `### User Authentication\n`;
+      wiringSection += `- **Provider**: ${wiring.user.providerType}\n`;
+      if (wiring.user.filePath) wiringSection += `- **File**: \`${wiring.user.filePath}\`\n`;
+      if (wiring.user.fields) wiringSection += `- **Fields**: ${wiring.user.fields.join(', ')}\n`;
+      wiringSection += '\n';
+    }
+
+    if (wiring.insertion && !wiring.insertion.unsure) {
+      wiringSection += `### Velt Initialization Location\n`;
+      wiringSection += `- **Location type**: ${wiring.insertion.locationType}\n`;
+      if (wiring.insertion.filePath) wiringSection += `- **File**: \`${wiring.insertion.filePath}\`\n`;
+      wiringSection += '\n';
+    }
+
+    if (wiring.todos.length > 0) {
+      wiringSection += `### ⚠️ TODOs (Need Developer Input)\n\n`;
+      wiringSection += wiring.todos.map(t => `- ${t}`).join('\n') + '\n\n';
+      wiringSection += `**IMPORTANT**: The items above need human clarification before implementation.\n`;
+    }
+
+    const planWithWiring = plan + wiringSection;
+
     report.steps.push({
-      step: 4,
+      step: 5,
       name: 'generate_plan',
       status: 'complete',
     });
 
-    report.plan = plan;
+    report.status = 'plan_generated';
+    report.plan = planWithWiring;
+    report.wiring = wiring;
     report.endTime = new Date().toISOString();
     report.cliMethod = cliResult.method;
     report.frameworkInfo = {
@@ -523,13 +721,18 @@ export async function runGuidedPlanStage({
     };
     report.message = 'Plan generated. Present to user and await approval before applying.';
 
-    console.error('✅ Step 4/4: Plan generated\n');
+    console.error('✅ Step 5/5: Plan generated\n');
     console.error('📝 Present the plan to the user and ask for approval.\n');
+
+    if (wiring.todos.length > 0) {
+      console.error('⚠️  IMPORTANT: The plan includes TODOs that need developer input.');
+      console.error('   Please review the "TODOs" section before proceeding.\n');
+    }
 
     return report;
   } catch (error) {
     console.error(`\n❌ Error: ${error.message}\n`);
-    report.status = 'failed';
+    report.status = 'error';
     report.endTime = new Date().toISOString();
     report.error = {
       message: error.message,

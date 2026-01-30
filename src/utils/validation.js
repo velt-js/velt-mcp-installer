@@ -12,12 +12,15 @@ import { isNextJsProject, detectProjectType, ProjectType } from './framework-det
 import { validateUseClientDirectives, scanAndFixUseClient } from './use-client.js';
 
 /**
- * Validates that directory is a valid Next.js project
+ * Validates that directory is a valid React project (Next.js or plain React)
  *
  * @param {string} projectPath - Path to project directory
- * @returns {Object} Validation result { valid: boolean, error?: string }
+ * @param {Object} [options] - Validation options
+ * @param {boolean} [options.requireNextJs=false] - If true, only accepts Next.js projects
+ * @returns {Object} Validation result { valid: boolean, error?: string, projectType?: string }
  */
-export function validateNextJsProject(projectPath) {
+export function validateProject(projectPath, options = {}) {
+  const { requireNextJs = false } = options;
   const packageJsonPath = path.join(projectPath, 'package.json');
 
   // Check package.json exists
@@ -39,20 +42,72 @@ export function validateNextJsProject(projectPath) {
     };
   }
 
-  // Check for "next" dependency
-  const hasNext = !!(
-    packageJson.dependencies?.next ||
-    packageJson.devDependencies?.next
-  );
+  const allDeps = {
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies,
+  };
 
-  if (!hasNext) {
+  // Check for React (required for all)
+  const hasReact = !!allDeps.react;
+  if (!hasReact) {
     return {
       valid: false,
-      error: '"next" not found in package.json dependencies. This tool requires a Next.js project.',
+      error: '"react" not found in package.json dependencies. Velt requires a React project.',
     };
   }
 
-  return { valid: true };
+  // Detect project type
+  const hasNext = !!allDeps.next;
+  const hasVite = !!allDeps.vite;
+  const hasReactScripts = !!allDeps['react-scripts'];
+
+  let projectType;
+  if (hasNext) {
+    projectType = 'nextjs';
+  } else if (hasVite) {
+    projectType = 'vite-react';
+  } else if (hasReactScripts) {
+    projectType = 'create-react-app';
+  } else {
+    projectType = 'react-unknown';
+  }
+
+  // If Next.js is required but not found
+  if (requireNextJs && !hasNext) {
+    return {
+      valid: false,
+      error: `"next" not found in package.json dependencies. This feature requires a Next.js project. Detected project type: ${projectType}`,
+      projectType,
+    };
+  }
+
+  return {
+    valid: true,
+    projectType,
+    isNextJs: hasNext,
+    framework: projectType,
+  };
+}
+
+/**
+ * Validates that directory is a valid Next.js project
+ * @deprecated Use validateProject() instead for broader framework support
+ *
+ * @param {string} projectPath - Path to project directory
+ * @returns {Object} Validation result { valid: boolean, error?: string }
+ */
+export function validateNextJsProject(projectPath) {
+  // For backward compatibility, delegate to validateProject with requireNextJs=false
+  // This allows React projects to pass, but validates that it's at least a React project
+  const result = validateProject(projectPath, { requireNextJs: false });
+
+  // Add warning for non-Next.js projects
+  if (result.valid && !result.isNextJs) {
+    console.error(`   ⚠️  Non-Next.js project detected: ${result.projectType}`);
+    console.error(`   ℹ️  Some features (like "use client" directives) are Next.js-specific`);
+  }
+
+  return result;
 }
 
 /**
@@ -496,6 +551,7 @@ export function applyUseClientFixes(projectPath) {
 }
 
 export default {
+  validateProject,
   validateNextJsProject,
   validateCliResolution,
   validateBasicCliInstall,

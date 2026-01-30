@@ -18,6 +18,37 @@ import { takeScreenshot, checkDevServerRunning } from './utils/screenshot.js';
 import { detectCommentPlacement } from './utils/comment-detector.js';
 
 /**
+ * Formats questionnaire for display in tool response
+ * @param {Object} questionnaire - Questionnaire object from installer
+ * @returns {string} Formatted markdown string
+ */
+function formatQuestionnaire(questionnaire) {
+  const sections = [];
+
+  if (questionnaire.documentId) {
+    const q = questionnaire.documentId;
+    sections.push(`### A) Document ID\n**${q.question}**\n${q.options.map((o, i) => `${i + 1}. ${o.label}`).join('\n')}\n\n*Follow-up questions:*\n${q.followUp.map(f => `- ${f.question}`).join('\n')}`);
+  }
+
+  if (questionnaire.user) {
+    const q = questionnaire.user;
+    sections.push(`### B) User Identity\n**${q.question}**\n${q.options.map((o, i) => `${i + 1}. ${o.label}`).join('\n')}\n\n*Follow-up questions:*\n${q.followUp.map(f => `- ${f.question}`).join('\n')}`);
+  }
+
+  if (questionnaire.auth) {
+    const q = questionnaire.auth;
+    sections.push(`### C) Auth/JWT Token\n**${q.question}**\n${q.options.map((o, i) => `${i + 1}. ${o.label}`).join('\n')}\n\n*Follow-up questions (if token exists):*\n${q.followUp.map(f => `- ${f.question}`).join('\n')}`);
+  }
+
+  if (questionnaire.insertion) {
+    const q = questionnaire.insertion;
+    sections.push(`### D) Velt Initialization Location\n**${q.question}**\n${q.options.map((o, i) => `${i + 1}. ${o.label}`).join('\n')}\n\n*Follow-up questions:*\n${q.followUp.map(f => `- ${f.question}`).join('\n')}`);
+  }
+
+  return sections.join('\n\n');
+}
+
+/**
  * Creates and starts the MCP server
  */
 export async function createServer() {
@@ -111,6 +142,9 @@ export async function createServer() {
         name: 'install_velt_interactive',
         description:
           '🌟 RECOMMENDED: Unified Velt installation with guided or CLI-only mode. ' +
+          '\n\n📚 PREREQUISITE: Install Velt Agent Skills via `npx skills add velt-js/agent-skills`' +
+          '\nThe generated plan references these skills as the PRIMARY implementation guide.' +
+          '\nSkills installed: velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices' +
           '\n\n🚨🚨🚨 CRITICAL: ASK QUESTIONS ONE AT A TIME 🚨🚨🚨' +
           '\nDO NOT dump all questions in one message.' +
           '\nWait for user response before asking the next question.' +
@@ -119,7 +153,7 @@ export async function createServer() {
           '\nWORKFLOW - ASK ONE QUESTION, WAIT, THEN NEXT:' +
           '\n=========================================' +
           '\n\nSTEP 1 - CONFIRM DIRECTORY:' +
-          '\n  Ask ONLY: "Is this the correct Next.js project directory: [path]?"' +
+          '\n  Ask ONLY: "Is this the correct project directory: [path]?"' +
           '\n  WAIT for user to confirm (yes/no).' +
           '\n\nSTEP 2 - GET API KEY:' +
           '\n  Ask ONLY: "Please provide your Velt API Key (from https://console.velt.dev)"' +
@@ -128,69 +162,72 @@ export async function createServer() {
           '\n  Ask ONLY: "Please provide your Velt Auth Token (from https://console.velt.dev)"' +
           '\n  WAIT for user response.' +
           '\n\nSTEP 4 - FEATURE SELECTION (with SKIP option):' +
-          '\n  Ask: "Select features to install OR type SKIP for CLI-only (you set up features yourself later):"' +
+          '\n  Ask: "Select features to install OR type SKIP for CLI-only:"' +
           '\n    📝 Comments (specify type: freestyle/popover/page/text/inline/tiptap/lexical/slate)' +
-          '\n    👥 Presence' +
-          '\n    🖱️ Cursors' +
-          '\n    🔔 Notifications' +
-          '\n    🎥 Recorder' +
+          '\n    👥 Presence | 🖱️ Cursors | 🔔 Notifications | 🎥 Recorder' +
           '\n    📄 CRDT (specify editor: tiptap/codemirror/blocknote)' +
-          '\n    ─────────────────────────────────────' +
           '\n    ⏭️  SKIP = CLI scaffolding only, no feature integration' +
           '\n  WAIT for user response.' +
           '\n\n=========================================' +
-          '\n🚨🚨🚨 IF USER TYPES "SKIP" (case-insensitive): 🚨🚨🚨' +
+          '\n🚨 IF USER TYPES "SKIP": CLI-ONLY MODE 🚨' +
           '\n=========================================' +
-          '\n  SKIP does NOT mean "use defaults"' +
-          '\n  SKIP means: RUN CLI ONLY, NO FEATURES, NO DEFAULTS' +
-          '\n  ' +
-          '\n  IMMEDIATELY call this tool with ONLY these params:' +
-          '\n    projectPath: [confirmed path]' +
-          '\n    apiKey: [user provided]' +
-          '\n    authToken: [user provided]' +
-          '\n    mode: "cli-only"' +
-          '\n  ' +
-          '\n  DO NOT pass features, commentType, or any other params.' +
-          '\n  DO NOT ask VeltProvider location.' +
-          '\n  DO NOT ask Velt features corner position.' +
-          '\n  DO NOT generate a plan.' +
-          '\n  DO NOT use any defaults like "freestyle comments".' +
-          '\n  ' +
-          '\n  The tool runs CLI scaffolding + basic QA, returns TODO checklist. DONE.' +
+          '\n  Call tool with ONLY: projectPath, apiKey, authToken, mode="cli-only"' +
+          '\n  DO NOT pass features or other params. Tool returns TODO checklist. DONE.' +
           '\n\n=========================================' +
-          '\nIF USER SELECTS SPECIFIC FEATURES:' +
+          '\n🔷 IF USER SELECTS FEATURES: GUIDED MODE 🔷' +
           '\n=========================================' +
-          '\n  Continue asking ONE question at a time:' +
           '\n\n  STEP 5 - VELTPROVIDER LOCATION:' +
-          '\n    Ask: "Where should VeltProvider be installed? (app/layout.tsx recommended, or specify path)"' +
+          '\n    Ask: "Where should VeltProvider be installed? (app/layout.tsx recommended)"' +
           '\n    WAIT for response.' +
-          '\n\n  STEP 6 - VELT FEATURES CORNER POSITION:' +
-          '\n    Ask: "Which corner would you like to place the Velt features? (top-left/top-right/bottom-left/bottom-right)"' +
-          '\n    Note: All Velt components (presence avatars, notifications, comments sidebar, etc.) will be placed in this corner.' +
+          '\n\n  STEP 6 - CORNER POSITION:' +
+          '\n    Ask: "Which corner for Velt features? (top-left/top-right/bottom-left/bottom-right)"' +
           '\n    WAIT for response.' +
-          '\n\n  STEP 7 - CALL TOOL (PLAN STAGE):' +
-          '\n    Call with mode="guided", stage="plan", and all collected params.' +
-          '\n    Tool returns implementation PLAN.' +
-          '\n\n  STEP 8 - SHOW PLAN, ASK APPROVAL:' +
+          '\n\n  STEP 7 - FIRST TOOL CALL (runs CLI, returns status):' +
+          '\n    Call with mode="guided", stage="plan", features, etc.' +
+          '\n    Tool returns status="awaiting_discovery_consent"' +
+          '\n\n  STEP 8 - DISCOVERY CONSENT:' +
+          '\n    Tool response includes question about scanning codebase.' +
+          '\n    Ask user: "Scan codebase for wiring info? [YES/NO]"' +
+          '\n    WAIT for response.' +
+          '\n\n  STEP 9A - IF USER SAYS YES (scan path):' +
+          '\n    Call tool with discoveryConsent="yes"' +
+          '\n    Tool returns status="awaiting_discovery_verification" with findings' +
+          '\n    Show findings to user, ask: "Verify? [CONFIRM ALL / EDIT / UNSURE]"' +
+          '\n    Call tool with discoveryVerification={status:"confirmed"|"edited", overrides?:{...}}' +
+          '\n\n  STEP 9B - IF USER SAYS NO (manual path):' +
+          '\n    Call tool with discoveryConsent="no"' +
+          '\n    Tool returns status="awaiting_manual_wiring_answers" with questionnaire' +
+          '\n    Ask questionnaire (DocumentId, User, Auth, Insertion) ONE SECTION AT A TIME' +
+          '\n    Call tool with manualWiring={documentId:{...}, user:{...}, auth:{...}, insertion:{...}}' +
+          '\n\n  STEP 10 - PLAN GENERATED:' +
+          '\n    Tool returns status="plan_generated" with full plan' +
           '\n    Show plan, ask: "Would you like me to implement this?"' +
           '\n    WAIT for approval.' +
-          '\n\n  STEP 9 - IF APPROVED:' +
+          '\n\n  STEP 11 - APPLY:' +
           '\n    Call with mode="guided", stage="apply", approved=true' +
           '\n    Execute plan, run full QA.' +
+          '\n\n=========================================' +
+          '\nTOOL RESPONSE STATUSES:' +
+          '\n=========================================' +
+          '\n• awaiting_discovery_consent - Need YES/NO for codebase scanning' +
+          '\n• awaiting_discovery_verification - Scan done, need CONFIRM/EDIT/UNSURE' +
+          '\n• awaiting_manual_wiring_answers - User said NO, need questionnaire answers' +
+          '\n• plan_generated - Plan ready with verified/manual wiring' +
+          '\n• cli_only_complete - SKIP path done' +
+          '\n• apply_complete - Apply stage done' +
           '\n\n=========================================' +
           '\nCRITICAL RULES:' +
           '\n=========================================' +
           '\n• ASK ONE QUESTION AT A TIME - never batch questions' +
-          '\n• NO DEFAULTS - user must answer each question explicitly' +
-          '\n• SKIP = CLI-only mode, NOT "use defaults"' +
-          '\n• SKIP = no features param, no commentType, no defaults' +
-          '\n• Guided mode requires TWO tool calls: plan then apply',
+          '\n• Check tool response "status" field to know next action' +
+          '\n• NO plan without verified scan OR completed manual answers' +
+          '\n• If user says UNSURE, ask who can confirm - do NOT guess',
         inputSchema: {
           type: 'object',
           properties: {
             projectPath: {
               type: 'string',
-              description: 'Path to the Next.js project directory - Must be confirmed by user',
+              description: 'Path to the project directory - Must be confirmed by user',
             },
             apiKey: {
               type: 'string',
@@ -203,16 +240,16 @@ export async function createServer() {
             mode: {
               type: 'string',
               enum: ['guided', 'cli-only'],
-              description: 'Installation mode. Use "cli-only" if user typed SKIP at feature selection. Default: "guided"',
+              description: 'Installation mode. Use "cli-only" if user typed SKIP. Default: "guided"',
             },
             stage: {
               type: 'string',
               enum: ['plan', 'apply'],
-              description: 'For guided mode: "plan" generates the plan (first call), "apply" executes it (second call after approval). Default: "plan"',
+              description: 'For guided mode: "plan" generates the plan, "apply" executes it. Default: "plan"',
             },
             approved: {
               type: 'boolean',
-              description: 'Set to true when user has approved the plan and you are calling with stage="apply". Required for apply stage.',
+              description: 'Set to true when user approved the plan (for stage="apply").',
             },
             features: {
               type: 'array',
@@ -220,12 +257,12 @@ export async function createServer() {
                 type: 'string',
                 enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt'],
               },
-              description: 'Features to install (guided mode only). Can include any combination.',
+              description: 'Features to install (guided mode only).',
             },
             commentType: {
               type: 'string',
               enum: ['freestyle', 'popover', 'page', 'text', 'inline', 'tiptap', 'lexical', 'slate'],
-              description: 'Type of comments to install (if comments feature selected)',
+              description: 'Type of comments (if comments feature selected)',
             },
             crdtEditorType: {
               type: 'string',
@@ -235,11 +272,80 @@ export async function createServer() {
             headerPosition: {
               type: 'string',
               enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-              description: 'Corner position for all Velt features (presence, notifications, comments sidebar, etc.). Default: "top-right"',
+              description: 'Corner position for Velt features. Default: "top-right"',
             },
             veltProviderLocation: {
               type: 'string',
               description: 'Where to install VeltProvider. Default: "app/layout.tsx"',
+            },
+            discoveryConsent: {
+              type: 'string',
+              enum: ['yes', 'no'],
+              description: 'User consent for automated codebase scanning. "yes"=run scan, "no"=use manual questionnaire.',
+            },
+            discoveryVerification: {
+              type: 'object',
+              description: 'Verification of scan results (after discoveryConsent="yes")',
+              properties: {
+                status: {
+                  type: 'string',
+                  enum: ['confirmed', 'edited', 'unsure'],
+                  description: 'User verification status',
+                },
+                overrides: {
+                  type: 'object',
+                  description: 'Per-section overrides if status="edited"',
+                  properties: {
+                    documentId: { type: 'object' },
+                    user: { type: 'object' },
+                    auth: { type: 'object' },
+                    insertion: { type: 'object' },
+                  },
+                },
+              },
+            },
+            manualWiring: {
+              type: 'object',
+              description: 'Manual wiring answers (after discoveryConsent="no")',
+              properties: {
+                documentId: {
+                  type: 'object',
+                  properties: {
+                    method: { type: 'string', enum: ['query-param', 'route-param', 'database', 'storage', 'other'] },
+                    filePath: { type: 'string' },
+                    variableName: { type: 'string' },
+                    example: { type: 'string' },
+                    unsure: { type: 'boolean' },
+                  },
+                },
+                user: {
+                  type: 'object',
+                  properties: {
+                    providerType: { type: 'string', enum: ['next-auth', 'clerk', 'firebase', 'supabase', 'custom-api', 'other'] },
+                    filePath: { type: 'string' },
+                    fields: { type: 'array', items: { type: 'string' } },
+                    unsure: { type: 'boolean' },
+                  },
+                },
+                auth: {
+                  type: 'object',
+                  properties: {
+                    usesToken: { type: 'boolean' },
+                    storage: { type: 'string', enum: ['cookie', 'localStorage', 'provider-sdk', 'none', 'unsure'] },
+                    source: { type: 'string' },
+                    refresh: { type: 'boolean' },
+                    unsure: { type: 'boolean' },
+                  },
+                },
+                insertion: {
+                  type: 'object',
+                  properties: {
+                    locationType: { type: 'string', enum: ['root-layout', 'specific-page', 'editor-wrapper', 'other'] },
+                    filePath: { type: 'string' },
+                    unsure: { type: 'boolean' },
+                  },
+                },
+              },
             },
             targetArea: {
               type: 'string',
@@ -443,24 +549,45 @@ Configuration will be used to install Velt with freestyle comments.`,
           const stage = args?.stage || 'plan';
           const approved = args?.approved || false;
 
-          // Use the unified installer
-          const result = await installVeltUnified({
+          // Build params based on mode
+          // CRITICAL: CLI-only (SKIP) mode should NOT pass features or commentType
+          const installerParams = {
             projectPath: args.projectPath,
             apiKey: args.apiKey,
             authToken: args.authToken,
             mode,
             stage,
             approved,
-            features: args?.features || ['comments'],
-            commentType: args?.commentType || 'freestyle',
-            crdtEditorType: args?.crdtEditorType || null,
-            headerPosition: args?.headerPosition || 'top-right',
-            veltProviderLocation: args?.veltProviderLocation || 'app/layout.tsx',
             server,
-          });
+          };
+
+          // Only add feature-related params for guided mode
+          if (mode === 'guided') {
+            installerParams.features = args?.features || ['comments'];
+            installerParams.commentType = args?.commentType || 'freestyle';
+            installerParams.crdtEditorType = args?.crdtEditorType || null;
+            installerParams.headerPosition = args?.headerPosition || 'top-right';
+            installerParams.veltProviderLocation = args?.veltProviderLocation || 'app/layout.tsx';
+
+            // NEW: Discovery consent and verification params
+            if (args?.discoveryConsent) {
+              installerParams.discoveryConsent = args.discoveryConsent;
+            }
+            if (args?.discoveryVerification) {
+              installerParams.discoveryVerification = args.discoveryVerification;
+            }
+            if (args?.manualWiring) {
+              installerParams.manualWiring = args.manualWiring;
+            }
+          }
+          // CLI-only mode: NO features, NO commentType, NO defaults
+          // Just run core CLI scaffold + basic QA
+
+          // Use the unified installer
+          const result = await installVeltUnified(installerParams);
 
           // Handle CLI-only mode result
-          if (result.mode === 'cli-only') {
+          if (result.status === 'cli_only_complete' || result.mode === 'cli-only') {
             return {
               content: [
                 {
@@ -471,20 +598,72 @@ Configuration will be used to install Velt with freestyle comments.`,
             };
           }
 
-          // Handle guided mode - plan stage
-          if (result.mode === 'guided' && result.stage === 'plan' && result.plan) {
+          // Handle NEW intermediate statuses for discovery flow
+          if (result.status === 'awaiting_discovery_consent') {
+            const nextActionText = result.nextAction
+              ? `\n\n## 🔍 Next Action Required\n\n**${result.nextAction.question}**\n\n${result.nextAction.options.map(o => `- **${o.value.toUpperCase()}**: ${o.label}`).join('\n')}\n\n⚠️ Ask the user this question, then call the tool again with \`discoveryConsent\` set to their answer ("yes" or "no").`
+              : '';
+
             return {
               content: [
                 {
                   type: 'text',
-                  text: `# Installation Plan Generated\n\n${result.plan}\n\n---\n\n## 🎯 NEXT STEPS\n\n1. **PRESENT THIS PLAN TO THE USER** - Show them the plan above\n2. **ASK FOR APPROVAL** - Ask: "Would you like me to implement this plan?"\n3. **IF APPROVED** - Call this tool again with:\n   - mode: "guided"\n   - stage: "apply"\n   - approved: true\n4. **EXECUTE THE PLAN** - Make the file edits described in the plan\n5. **CHECK DEV CONSOLE** - After implementation, check browser console for Velt errors\n\n---\n\n⚠️ **CRITICAL**: Do NOT make any file changes until the user approves this plan.\n\n---\n\n**IMPLEMENTATION RULES:**\n• ONLY implement features the user requested\n• Use .md documentation URLs for component patterns\n• Use CLI-generated: authentication, user setup, document setup\n• DO NOT use VeltTools or ui-customization folder (unless requested)\n• DO NOT use CLI-generated component files as implementation reference`,
+                  text: `# CLI Complete - Discovery Consent Needed\n\n${result.message || 'CLI scaffolding complete. Ready to discover integration points.'}${nextActionText}\n\n---\n\n**Status:** ${result.status}\n**CLI Method:** ${result.cliMethod || 'unknown'}`,
+                },
+              ],
+            };
+          }
+
+          if (result.status === 'awaiting_discovery_verification') {
+            const findingsText = result.formattedFindings || JSON.stringify(result.discovery, null, 2);
+            const nextActionText = result.nextAction
+              ? `\n\n## ✅ Verification Required\n\n**${result.nextAction.question}**\n\n${result.nextAction.options.map(o => `- **${o.value.toUpperCase()}**: ${o.label}`).join('\n')}\n\n⚠️ Show the findings above to the user and ask them to verify. Then call the tool with \`discoveryVerification\` set to their response.`
+              : '';
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `# Discovery Scan Complete - Verification Needed\n\n${findingsText}${nextActionText}\n\n---\n\n**Status:** ${result.status}`,
+                },
+              ],
+            };
+          }
+
+          if (result.status === 'awaiting_manual_wiring_answers') {
+            const questionnaireText = result.questionnaire
+              ? `\n\n## 📝 Manual Wiring Questionnaire\n\nAsk the user these questions ONE SECTION AT A TIME:\n\n${formatQuestionnaire(result.questionnaire)}\n\n⚠️ After collecting all answers, call the tool with \`manualWiring\` containing the user's responses.`
+              : '';
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `# Manual Wiring Required\n\n${result.message || 'User declined codebase scanning. Please collect wiring information manually.'}${questionnaireText}\n\n---\n\n**Status:** ${result.status}`,
+                },
+              ],
+            };
+          }
+
+          // Handle guided mode - plan generated (after discovery complete)
+          if (result.status === 'plan_generated' || (result.mode === 'guided' && result.stage === 'plan' && result.plan)) {
+            const wiringSource = result.wiring?.source || 'unknown';
+            const todosText = result.wiring?.todos?.length > 0
+              ? `\n\n## ⚠️ TODOs (Need Developer Input)\n\n${result.wiring.todos.map(t => `- ${t}`).join('\n')}`
+              : '';
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `# Installation Plan Generated\n\n**Wiring Source:** ${wiringSource}${todosText}\n\n${result.plan}\n\n---\n\n## 🎯 NEXT STEPS\n\n1. **PRESENT THIS PLAN TO THE USER** - Show them the plan above\n2. **ASK FOR APPROVAL** - Ask: "Would you like me to implement this plan?"\n3. **IF APPROVED** - Call this tool again with:\n   - mode: "guided"\n   - stage: "apply"\n   - approved: true\n4. **EXECUTE THE PLAN** - Make the file edits described in the plan\n5. **CHECK DEV CONSOLE** - After implementation, check browser console for Velt errors\n\n---\n\n⚠️ **CRITICAL**: Do NOT make any file changes until the user approves this plan.\n\n---\n\n**IMPLEMENTATION RULES:**\n• Use installed **Agent Skills** as PRIMARY reference (velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices)\n• Use Docs URLs ONLY for features without skills (presence, cursors, recorder)\n• Use Velt Docs MCP ONLY for user follow-up questions after implementation\n• ONLY implement features the user requested\n• Use CLI-generated: authentication, user setup, document setup\n• DO NOT use VeltTools or ui-customization folder (unless requested)\n• DO NOT use CLI-generated component files as implementation reference`,
                 },
               ],
             };
           }
 
           // Handle guided mode - apply stage
-          if (result.mode === 'guided' && result.stage === 'apply') {
+          if (result.status === 'apply_complete' || (result.mode === 'guided' && result.stage === 'apply')) {
             const validationSummary = result.validation
               ? `\n\n## Validation Results\n${result.validation.checks.map(c => `- ${c.status === 'pass' ? '✅' : '❌'} ${c.name}: ${c.message}`).join('\n')}\n\n**Score:** ${result.validation.score}`
               : '';

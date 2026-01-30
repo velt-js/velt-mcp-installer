@@ -3,10 +3,97 @@
  *
  * Fetches Velt documentation from markdown (.md) URLs with fallback to Velt Docs MCP.
  * For post-installation questions/troubleshooting, AI should query Velt Docs MCP directly.
+ *
+ * Source Priority:
+ * 1. Agent Skills Libraries (installed via `npx skills add velt-js/agent-skills`)
+ *    - Referenced by name in plan output; AI editor loads them automatically
+ * 2. Docs URLs (docs.velt.dev markdown) - for features without skills coverage
+ * 3. Velt Docs MCP - only on explicit user follow-up questions
  */
 
 import { getDocUrl, getDocMarkdownUrl } from './velt-docs-urls.js';
 import { queryVeltDocsMCP } from './velt-mcp-client.js';
+
+/**
+ * Maps Velt features to their corresponding Agent Skill names.
+ * Skills are installed via `npx skills add velt-js/agent-skills` and
+ * loaded into the AI editor's context automatically.
+ *
+ * The MCP references these by name in plan output — it does NOT read skill files.
+ */
+export const FEATURE_SKILL_MAP = {
+  // Setup / Provider / Auth / Document
+  setup: 'velt-setup-best-practices',
+  provider: 'velt-setup-best-practices',
+  auth: 'velt-setup-best-practices',
+  document: 'velt-setup-best-practices',
+
+  // Comments (all types)
+  comments: 'velt-comments-best-practices',
+
+  // CRDT (all editor types)
+  crdt: 'velt-crdt-best-practices',
+
+  // Notifications
+  notifications: 'velt-notifications-best-practices',
+
+  // Features WITHOUT skills coverage — use docs URLs
+  // presence: null,
+  // cursors: null,
+  // recorder: null,
+};
+
+/**
+ * Returns the Agent Skill name for a given feature, or null if no skill covers it.
+ *
+ * @param {string} feature - Feature name (comments, crdt, notifications, presence, etc.)
+ * @param {string} [subtype] - Optional subtype (freestyle, tiptap, etc.) — unused for mapping but kept for API consistency
+ * @returns {string|null} Skill name or null
+ */
+export function getSkillForFeature(feature, subtype = null) {
+  return FEATURE_SKILL_MAP[feature] || null;
+}
+
+/**
+ * Returns an array of { feature, skillName } objects for all features that have skills,
+ * plus { feature, docsUrl } for features that fall back to docs.
+ *
+ * @param {string[]} features - Array of feature names
+ * @param {Object} [options] - Options
+ * @param {string} [options.commentType] - Comment subtype
+ * @param {string} [options.crdtEditorType] - CRDT editor subtype
+ * @returns {Array<{feature: string, skillName?: string, docsUrl?: string}>}
+ */
+export function getSkillReferences(features, options = {}) {
+  const { commentType, crdtEditorType } = options;
+  const refs = [];
+
+  // Always include setup skill
+  refs.push({
+    feature: 'setup',
+    skillName: FEATURE_SKILL_MAP.setup,
+    description: 'VeltProvider setup, authentication, document identity, project structure',
+  });
+
+  for (const feature of features) {
+    const skill = getSkillForFeature(feature);
+    if (skill) {
+      const subtype = feature === 'comments' ? commentType : feature === 'crdt' ? crdtEditorType : null;
+      refs.push({
+        feature: subtype ? `${feature} (${subtype})` : feature,
+        skillName: skill,
+      });
+    } else {
+      const subtype = feature === 'comments' ? commentType : feature === 'crdt' ? crdtEditorType : null;
+      refs.push({
+        feature: subtype ? `${feature} (${subtype})` : feature,
+        docsUrl: getDocMarkdownUrl(feature, subtype),
+      });
+    }
+  }
+
+  return refs;
+}
 
 /**
  * Fetches implementation details for a comment type
@@ -195,4 +282,7 @@ export default {
   fetchCommentImplementation,
   fetchFeatureImplementation,
   fetchCrdtImplementation,
+  FEATURE_SKILL_MAP,
+  getSkillForFeature,
+  getSkillReferences,
 };

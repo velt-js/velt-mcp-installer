@@ -6,6 +6,54 @@
  */
 
 import { getDocUrl, getDocMarkdownUrl } from './velt-docs-urls.js';
+import { getSkillReferences } from './velt-docs-fetcher.js';
+
+/**
+ * Generates a "Skills & Sources" section for the plan output.
+ * Skills-covered features get a skill reference; others get docs URLs.
+ *
+ * @param {string[]} features - Features being installed
+ * @param {Object} [options] - Options (commentType, crdtEditorType)
+ * @returns {string} Markdown section
+ */
+function formatSkillsSourceSection(features, options = {}) {
+  const refs = getSkillReferences(features, options);
+
+  let section = `## Implementation Sources (Priority Order)\n\n`;
+  section += `> **PREREQUISITE:** Install Velt Agent Skills via \`npx skills add velt-js/agent-skills\`\n>\n`;
+  section += `> **Source Priority:** 1) Agent Skills (primary) → 2) Docs URLs (secondary) → 3) Velt Docs MCP (user follow-up only)\n\n`;
+
+  const skillRefs = refs.filter(r => r.skillName);
+  const docsRefs = refs.filter(r => r.docsUrl);
+
+  if (skillRefs.length > 0) {
+    section += `### Primary: Agent Skills (use these first)\n\n`;
+    // Deduplicate skill names
+    const seen = new Set();
+    for (const ref of skillRefs) {
+      if (!seen.has(ref.skillName)) {
+        seen.add(ref.skillName);
+        const features = skillRefs.filter(r => r.skillName === ref.skillName).map(r => r.feature);
+        section += `- **${ref.skillName}** — covers: ${features.join(', ')}${ref.description ? ` (${ref.description})` : ''}\n`;
+      }
+    }
+    section += `\n`;
+  }
+
+  if (docsRefs.length > 0) {
+    section += `### Secondary: Docs URLs (for features without skills)\n\n`;
+    for (const ref of docsRefs) {
+      section += `- ${ref.feature}: ${ref.docsUrl}\n`;
+    }
+    section += `\n`;
+  }
+
+  section += `### Tertiary: Velt Docs MCP\n`;
+  section += `- Only use for user follow-up questions AFTER implementation\n`;
+  section += `- Do NOT query Velt Docs MCP during initial implementation if skills cover the feature\n\n`;
+
+  return section;
+}
 
 /**
  * Formats a plan with numbered steps, details, and a to-do checklist
@@ -504,20 +552,22 @@ export function useVeltAuthProvider() {
 - ✅ Document setup (document context)
 - ✅ API key configuration
 
-**WHAT TO GET FROM .MD DOCS:**
-- ✅ VeltProvider implementation
-- ✅ VeltComments component code
-- ✅ All component patterns and examples
+**PRIMARY SOURCE: Agent Skills (installed via \`npx skills add velt-js/agent-skills\`):**
+- ✅ **velt-setup-best-practices** — VeltProvider setup, auth, document identity, project structure
+- ✅ **velt-comments-best-practices** — ${commentType} comments implementation patterns and best practices
+- Use skills as your FIRST reference for implementation details
+
+**SECONDARY SOURCE: Docs URLs (only if skills don't cover it):**
+- ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+
+**TERTIARY SOURCE: Velt Docs MCP:**
+- Only use for user follow-up questions AFTER implementation
 
 **WHAT NOT TO IMPLEMENT:**
 - ❌ VeltTools component
 - ❌ ui-customization folder (unless user asks)
 - ❌ Components user didn't request
-- ❌ DO NOT copy code from CLI-generated files in components/velt/*
-
-**IMPLEMENTATION SOURCE:**
-- Get component code from: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
-- NOT from CLI-generated component files`,
+- ❌ DO NOT copy code from CLI-generated files in components/velt/*`,
     },
     {
       title: 'Additional Features Available',
@@ -564,27 +614,36 @@ After installation, open your browser DevTools Console (Press F12 or Cmd+Option+
     },
     {
       title: 'Documentation Reference',
-      content: `For more details, see: ${implementation.docUrl || getDocUrl('comments', commentType)}
+      content: `**Primary: Agent Skills (installed via \`npx skills add velt-js/agent-skills\`)**
+- **velt-setup-best-practices** — VeltProvider, auth, document identity, project structure
+- **velt-comments-best-practices** — ${commentType} comments implementation patterns
 
-**Markdown Documentation URLs:**
-All Velt docs are available as markdown at:
-- Pattern: https://docs.velt.dev/[feature]/[page].md
+**Secondary: Docs URLs**
 - This feature: ${implementation.mdUrl || getDocMarkdownUrl('comments', commentType)}
+- Pattern: https://docs.velt.dev/[feature]/[page].md
 
-**Using Velt Docs MCP:**
-After installation, query the Velt Docs MCP server to get answers about:
+**Tertiary: Velt Docs MCP**
+After installation, query the Velt Docs MCP server for:
 - Feature customization
 - Troubleshooting
 - Advanced configuration
-- Integration patterns`,
+- Integration patterns
+Do NOT query during initial implementation — use Agent Skills first.`,
     },
   ];
 
-  return formatInstallationPlan({
+  // Generate skills source section
+  const skillsSection = formatSkillsSourceSection(['comments'], { commentType });
+
+  const basePlan = formatInstallationPlan({
     title: `Plan for Velt ${commentTypeTitle} Comments Installation`,
     steps,
     additionalInfo,
   });
+
+  // Insert skills section right after the title line
+  const titleEnd = basePlan.indexOf('\n\n') + 2;
+  return basePlan.slice(0, titleEnd) + skillsSection + basePlan.slice(titleEnd);
 }
 
 /**
@@ -1356,38 +1415,46 @@ export function useVeltAuthProvider() {
 - ✅ Document setup (document context)
 - ✅ API key configuration
 
-**WHAT TO GET FROM .MD DOCS:**
-- ✅ VeltProvider implementation
-- ✅ All component code (${componentsToAdd.join(', ')})
-- ✅ All component patterns and examples
+**PRIMARY SOURCE: Agent Skills (installed via \`npx skills add velt-js/agent-skills\`):**
+- ✅ **velt-setup-best-practices** — VeltProvider setup, auth, document identity, project structure
+${hasComments ? `- ✅ **velt-comments-best-practices** — ${commentType} comments implementation patterns\n` : ''}${hasCRDT ? `- ✅ **velt-crdt-best-practices** — ${crdtEditorType || 'collaborative editing'} CRDT patterns\n` : ''}${hasNotifications ? `- ✅ **velt-notifications-best-practices** — notifications setup and customization\n` : ''}- Use skills as your FIRST reference for implementation details
+
+**SECONDARY SOURCE: Docs URLs (for features without skills coverage):**
+${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}\n` : ''}${!hasPresence && !hasCursors && !hasRecorder ? `- All selected features are covered by Agent Skills\n` : ''}
+**TERTIARY SOURCE: Velt Docs MCP:**
+- Only use for user follow-up questions AFTER implementation
 
 **WHAT NOT TO IMPLEMENT:**
 - ❌ VeltTools component (unless explicitly requested)
 - ❌ ui-customization folder (unless user asks)
 - ❌ Components user didn't request
-- ❌ DO NOT copy code from CLI-generated files in components/velt/*
-
-**IMPLEMENTATION SOURCES:**
-${hasComments ? `- Comments: ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (${crdtImplementation.source})` : ''}\n` : ''}`,
+- ❌ DO NOT copy code from CLI-generated files in components/velt/*`,
     },
     {
       title: 'Documentation References',
-      content: `**Markdown Documentation URLs:**
-All Velt docs are available as markdown at: https://docs.velt.dev/[feature]/[page].md
-
-**Features you're installing:**
-${hasComments ? `- Comments (${commentType}): ${implementation?.mdUrl || getDocMarkdownUrl('comments', commentType)}${implementation?.source ? ` (${implementation.source})` : ''}\n` : ''}${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}${featureImplementations.presence?.source ? ` (${featureImplementations.presence.source})` : ''}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}${featureImplementations.cursors?.source ? ` (${featureImplementations.cursors.source})` : ''}\n` : ''}${hasNotifications ? `- Notifications: ${featureImplementations.notifications?.mdUrl || getDocMarkdownUrl('notifications')}${featureImplementations.notifications?.source ? ` (${featureImplementations.notifications.source})` : ''}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}${featureImplementations.recorder?.source ? ` (${featureImplementations.recorder.source})` : ''}\n` : ''}${hasCRDT && crdtEditorType ? `- CRDT (${crdtEditorType}): ${crdtImplementation?.mdUrl || getDocMarkdownUrl('crdt', crdtEditorType)}${crdtImplementation?.source ? ` (${crdtImplementation.source})` : ''}\n` : ''}
+      content: `**Primary: Agent Skills (installed via \`npx skills add velt-js/agent-skills\`)**
+- velt-setup-best-practices — setup, provider, auth, document
+${hasComments ? `- velt-comments-best-practices — ${commentType} comments\n` : ''}${hasCRDT ? `- velt-crdt-best-practices — ${crdtEditorType || 'collaborative editing'}\n` : ''}${hasNotifications ? `- velt-notifications-best-practices — notifications\n` : ''}
+**Secondary: Docs URLs (for features without skills)**
+${hasPresence ? `- Presence: ${featureImplementations.presence?.mdUrl || getDocMarkdownUrl('presence')}\n` : ''}${hasCursors ? `- Cursors: ${featureImplementations.cursors?.mdUrl || getDocMarkdownUrl('cursors')}\n` : ''}${hasRecorder ? `- Recorder: ${featureImplementations.recorder?.mdUrl || getDocMarkdownUrl('recorder')}\n` : ''}All Velt docs available as markdown at: https://docs.velt.dev/[feature]/[page].md
 ${hasCRDT && crdtImplementation?.data?.markdown ? `\n**CRDT Implementation Details (from ${crdtImplementation.source}):**\n${crdtImplementation.data.markdown.substring(0, 2000)}${crdtImplementation.data.markdown.length > 2000 ? '...\n\n[See full documentation at: ' + crdtImplementation.mdUrl + ']' : ''}\n` : ''}
-**Using Velt Docs MCP:**
-After installation, query the Velt Docs MCP server for customization, troubleshooting, and advanced configuration.`,
+**Tertiary: Velt Docs MCP**
+After installation, query the Velt Docs MCP server for customization, troubleshooting, and advanced configuration. Do NOT use during initial implementation if skills cover the feature.`,
     },
   ];
 
-  return formatInstallationPlan({
+  // Generate skills source section
+  const skillsSection = formatSkillsSourceSection(features, { commentType, crdtEditorType });
+
+  const basePlan = formatInstallationPlan({
     title: `Plan for Velt Installation: ${featureList.join(', ')}`,
     steps,
     additionalInfo,
   });
+
+  // Insert skills section right after the title line
+  const titleEnd = basePlan.indexOf('\n\n') + 2;
+  return basePlan.slice(0, titleEnd) + skillsSection + basePlan.slice(titleEnd);
 }
 
 /**
@@ -1626,6 +1693,7 @@ The guided mode will:
 
 export default {
   formatInstallationPlan,
+  formatSkillsSourceSection,
   createVeltCommentsPlan,
   createMultiFeaturePlan,
   createCliOnlyReport,
