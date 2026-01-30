@@ -177,7 +177,7 @@ export async function createServer() {
           '\n🔷 IF USER SELECTS FEATURES: GUIDED MODE 🔷' +
           '\n=========================================' +
           '\n\n  STEP 5 - VELTPROVIDER LOCATION:' +
-          '\n    Ask: "Where should VeltProvider be installed? (app/page.tsx recommended)"' +
+          '\n    Ask: "Where should VeltProvider be installed? (app/page.tsx recommended). NOTE: ONLY recommend app/page.tsx. Do NOT suggest app/layout.tsx."' +
           '\n    WAIT for response.' +
           '\n\n  STEP 6 - CORNER POSITION:' +
           '\n    Ask: "Which corner for Velt features? (top-left/top-right/bottom-left/bottom-right)"' +
@@ -276,7 +276,7 @@ export async function createServer() {
             },
             veltProviderLocation: {
               type: 'string',
-              description: 'Where to install VeltProvider. Default: "app/page.tsx"',
+              description: 'Where to install VeltProvider. Default and recommended: "app/page.tsx". Do NOT use app/layout.tsx.',
             },
             discoveryConsent: {
               type: 'string',
