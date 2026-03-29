@@ -159,6 +159,16 @@ export function ensureUseClient(filePath, content) {
     };
   }
 
+  // Never add "use client" to files that export metadata or generateMetadata
+  // (these are Next.js server-only exports that conflict with "use client")
+  if (/export\s+(const\s+metadata|async\s+function\s+generateMetadata|function\s+generateMetadata)/.test(content)) {
+    return {
+      modified: false,
+      content,
+      reason: 'File exports metadata/generateMetadata (server-only) — cannot add "use client"',
+    };
+  }
+
   // Check if needs directive
   const check = needsUseClientDirective(content);
 
