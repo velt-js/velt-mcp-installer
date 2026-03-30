@@ -148,7 +148,7 @@ export async function runVeltCli({
     }
 
     // Build npx command
-    const npxArgs = ['@velt-js/add-velt', ...flags];
+    const npxArgs = ['@velt-js/add-velt@latest', ...flags];
     const fullCommand = `npx ${npxArgs.join(' ')}`;
 
     console.error('\n   ═══════════════════════════════════════════════════════════');
@@ -355,7 +355,7 @@ export async function runVeltCliCoreOnly({
 export function getCliResolutionInfo() {
   return {
     method: 'npx',
-    command: 'npx @velt-js/add-velt',
+    command: 'npx @velt-js/add-velt@latest',
     path: null,
   };
 }
