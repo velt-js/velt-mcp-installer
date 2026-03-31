@@ -21,6 +21,7 @@ export const VELT_DOCS_URLS = {
       page: 'https://docs.velt.dev/async-collaboration/comments/setup/page',
       text: 'https://docs.velt.dev/async-collaboration/comments/setup/text',
       inline: 'https://docs.velt.dev/async-collaboration/comments/setup/inline-comments',
+      stream: 'https://docs.velt.dev/async-collaboration/comments/setup/stream',
       // Purpose-built library integrations
       tiptap: 'https://docs.velt.dev/async-collaboration/comments/setup/tiptap',
       lexical: 'https://docs.velt.dev/async-collaboration/comments/setup/lexical',
@@ -61,7 +62,7 @@ export const VELT_DOCS_URLS = {
       blocknote: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/blocknote',
       reactflow: 'https://docs.velt.dev/realtime-collaboration/crdt/setup/reactflow',
     },
-    overview: 'https://docs.velt.dev/multiplayer-editing/overview',
+    overview: 'https://docs.velt.dev/realtime-collaboration/crdt/overview',
   },
 
 };

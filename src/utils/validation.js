@@ -399,8 +399,15 @@ export async function validateInstallation({ projectPath, cliResult = null }) {
       });
     }
 
-    // Check 3: VeltProvider in layout
+    // Check 3: VeltProvider in page.tsx (primary) or layout.tsx (fallback)
     total++;
+    const pagePrimaryPaths = [
+      'app/page.tsx',
+      'app/page.js',
+      'src/app/page.tsx',
+      'src/app/page.js',
+    ];
+
     const layoutPaths = [
       'app/layout.tsx',
       'app/layout.js',
@@ -410,25 +417,45 @@ export async function validateInstallation({ projectPath, cliResult = null }) {
 
     let layoutFound = false;
     let hasVeltProvider = false;
+    let veltProviderLocation = '';
 
-    for (const layoutPath of layoutPaths) {
-      const fullPath = path.join(projectPath, layoutPath);
+    // Primary: scan page.tsx files
+    for (const pagePrimaryPath of pagePrimaryPaths) {
+      const fullPath = path.join(projectPath, pagePrimaryPath);
       if (fs.existsSync(fullPath)) {
-        layoutFound = true;
-        const layoutContent = fs.readFileSync(fullPath, 'utf-8');
-        hasVeltProvider = layoutContent.includes('VeltProvider');
-        break;
+        const pageContent = fs.readFileSync(fullPath, 'utf-8');
+        if (pageContent.includes('VeltProvider')) {
+          hasVeltProvider = true;
+          veltProviderLocation = pagePrimaryPath;
+          break;
+        }
+      }
+    }
+
+    // Fallback: scan layout.tsx files
+    if (!hasVeltProvider) {
+      for (const layoutPath of layoutPaths) {
+        const fullPath = path.join(projectPath, layoutPath);
+        if (fs.existsSync(fullPath)) {
+          layoutFound = true;
+          const layoutContent = fs.readFileSync(fullPath, 'utf-8');
+          if (layoutContent.includes('VeltProvider')) {
+            hasVeltProvider = true;
+            veltProviderLocation = layoutPath;
+          }
+          break;
+        }
       }
     }
 
     checks.push({
       name: 'VeltProvider configured',
       status: hasVeltProvider ? 'pass' : 'fail',
-      message: layoutFound
-        ? hasVeltProvider
-          ? 'VeltProvider found in layout'
-          : 'VeltProvider not found in layout'
-        : 'Layout file not found',
+      message: hasVeltProvider
+        ? `VeltProvider found in ${veltProviderLocation}`
+        : layoutFound
+          ? 'VeltProvider not found in page.tsx or layout.tsx'
+          : 'VeltProvider not found - check page.tsx or layout.tsx',
     });
 
     if (hasVeltProvider) passed++;
@@ -467,16 +494,18 @@ export async function validateInstallation({ projectPath, cliResult = null }) {
 
     if (hasVeltComments) passed++;
 
-    // Check 5: VeltCommentsSidebar in layout
+    // Check 5: VeltCollaboration or VeltCommentsSidebar in page.tsx
     total++;
     let hasVeltSidebar = false;
+    let veltSidebarLocation = '';
 
-    if (layoutFound) {
-      for (const layoutPath of layoutPaths) {
-        const fullPath = path.join(projectPath, layoutPath);
-        if (fs.existsSync(fullPath)) {
-          const layoutContent = fs.readFileSync(fullPath, 'utf-8');
-          hasVeltSidebar = layoutContent.includes('VeltCommentsSidebar');
+    for (const pagePrimaryPath of pagePrimaryPaths) {
+      const fullPath = path.join(projectPath, pagePrimaryPath);
+      if (fs.existsSync(fullPath)) {
+        const pageContent = fs.readFileSync(fullPath, 'utf-8');
+        if (pageContent.includes('VeltCollaboration') || pageContent.includes('VeltCommentsSidebar')) {
+          hasVeltSidebar = true;
+          veltSidebarLocation = pagePrimaryPath;
           break;
         }
       }
@@ -485,11 +514,9 @@ export async function validateInstallation({ projectPath, cliResult = null }) {
     checks.push({
       name: 'VeltCommentsSidebar added',
       status: hasVeltSidebar ? 'pass' : 'fail',
-      message: layoutFound
-        ? hasVeltSidebar
-          ? 'VeltCommentsSidebar found in layout'
-          : 'VeltCommentsSidebar not found in layout'
-        : 'Layout file not found',
+      message: hasVeltSidebar
+        ? `VeltCollaboration or VeltCommentsSidebar found in ${veltSidebarLocation}`
+        : 'VeltCollaboration or VeltCommentsSidebar not found in page.tsx',
     });
 
     if (hasVeltSidebar) passed++;
