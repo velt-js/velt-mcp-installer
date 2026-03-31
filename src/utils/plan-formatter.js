@@ -321,6 +321,66 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
 - BlockNote handles CRDT automatically with the config`;
     }
 
+    const tiptapCodeExamples = crdtEditorType === 'tiptap' ? [
+      {
+        description: 'Correct Tiptap CRDT editor pattern (use this exact structure)',
+        language: 'tsx',
+        code: `"use client";
+import { useEffect } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus"; // ⚠️ Tiptap v3: MUST be from @tiptap/react/menus, NOT @tiptap/react
+import StarterKit from "@tiptap/starter-kit";
+import { useVeltTiptapCrdtExtension } from "@veltdev/tiptap-crdt-react";
+import { TiptapVeltComments, addComment, renderComments } from "@veltdev/tiptap-velt-comments";
+import { useCommentAnnotations } from "@veltdev/react";
+
+export function TiptapCollabEditor({ documentId, initialContent }: { documentId: string; initialContent?: string }) {
+  const editorId = \`\${documentId}/main\`;
+
+  const { VeltCrdt, isLoading } = useVeltTiptapCrdtExtension({
+    editorId,
+    initialContent: initialContent || undefined,
+  });
+
+  const commentAnnotations = useCommentAnnotations();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ undoRedo: false }), // ⚠️ MUST be undoRedo, NOT history
+      TiptapVeltComments,                         // ⚠️ MUST be BEFORE VeltCrdt or app FREEZES
+      ...(VeltCrdt ? [VeltCrdt] : []),            // CRDT extension LAST
+    ],
+    immediatelyRender: false,
+  }, [VeltCrdt]);
+
+  // Render comment highlights — editorId is REQUIRED
+  useEffect(() => {
+    if (editor && commentAnnotations) {
+      renderComments({ editor, editorId, commentAnnotations }); // ⚠️ editorId REQUIRED
+    }
+  }, [editor, editorId, commentAnnotations]);
+
+  if (isLoading) return <div>Loading editor...</div>;
+
+  return (
+    <div>
+      <EditorContent editor={editor} />
+      {editor && (
+        <BubbleMenu editor={editor}>
+          <button onMouseDown={(e) => {
+            e.preventDefault();
+            addComment({ editor, editorId }); // ⚠️ editorId REQUIRED
+          }}>
+            Add Comment
+          </button>
+        </BubbleMenu>
+      )}
+    </div>
+  );
+}`,
+      },
+    ] : [];
+
     steps.push({
       title: `Create ${editorName} CRDT editor component`,
       details: `**Skill reference:** \`velt-crdt-best-practices\` → ${skillRules}
@@ -329,6 +389,7 @@ Create \`components/velt/${editorName}CollabEditor.tsx\` following the skill pat
 
 Requirements:
 ${requirements}`,
+      codeExamples: tiptapCodeExamples,
     });
   }
 
@@ -343,11 +404,52 @@ ${requirements}`,
 The global \`<VeltComments>\` component is necessary but NOT sufficient for editor comments.
 You MUST also:
 - Add \`TiptapVeltComments\` to the editor's extensions array (BEFORE the CRDT extension)
-- Import and call \`highlightComments(editor, commentAnnotations)\` in a useEffect (v4 API)
-- Import and use \`triggerAddComment(editor)\` for the comment button (v4 API)
+- Use \`renderComments({ editor, editorId, commentAnnotations })\` in a useEffect — editorId is REQUIRED
+- Use \`addComment({ editor, editorId })\` for the comment trigger — editorId is REQUIRED
 - Import \`useCommentAnnotations\` from \`@veltdev/react\` to subscribe to comment data
+- Use \`BubbleMenu\` from \`@tiptap/react/menus\` (NOT \`@tiptap/react\`) for the comment trigger UI`,
+      codeExamples: [
+        {
+          description: 'Extension order (CRITICAL — wrong order causes FREEZE)',
+          language: 'tsx',
+          code: `// ✅ CORRECT — TiptapVeltComments BEFORE VeltCrdt
+extensions: [
+  StarterKit.configure({ undoRedo: false }),
+  TiptapVeltComments,              // MUST be BEFORE VeltCrdt
+  ...(VeltCrdt ? [VeltCrdt] : []), // CRDT extension LAST
+]
 
-Check your installed package version — v4 uses \`triggerAddComment\`/\`highlightComments\`, v5 uses \`addComment\`/\`renderComments\`.`,
+// ❌ WRONG — causes app FREEZE when adding comments
+extensions: [
+  StarterKit.configure({ undoRedo: false }),
+  ...(VeltCrdt ? [VeltCrdt] : []), // VeltCrdt before TiptapVeltComments = FREEZE
+  TiptapVeltComments,
+]`,
+        },
+        {
+          description: 'Comment rendering and triggering (editorId REQUIRED)',
+          language: 'tsx',
+          code: `import { BubbleMenu } from "@tiptap/react/menus"; // ⚠️ NOT from @tiptap/react
+import { TiptapVeltComments, addComment, renderComments } from "@veltdev/tiptap-velt-comments";
+import { useCommentAnnotations } from "@veltdev/react";
+
+// Render highlights — editorId is REQUIRED
+const commentAnnotations = useCommentAnnotations();
+useEffect(() => {
+  if (editor && commentAnnotations) {
+    renderComments({ editor, editorId, commentAnnotations });
+  }
+}, [editor, editorId, commentAnnotations]);
+
+// BubbleMenu with comment button — editorId is REQUIRED
+<BubbleMenu editor={editor}>
+  <button onMouseDown={(e) => {
+    e.preventDefault();
+    addComment({ editor, editorId });
+  }}>Add Comment</button>
+</BubbleMenu>`,
+        },
+      ],
     });
   }
 
@@ -359,7 +461,27 @@ Check your installed package version — v4 uses \`triggerAddComment\`/\`highlig
 
 Tiptap and @veltdev/tiptap-velt-comments use browser-only APIs. In Next.js, the editor component MUST be loaded with \`next/dynamic\` and \`ssr: false\` in the page that renders it. Without this, the app will crash with a \`g.catch is not a function\` error.
 
-In your page file, use \`dynamic(() => import(...), { ssr: false })\` — do NOT import the editor component directly.`,
+Do NOT import the editor component directly — use the dynamic import pattern below.`,
+      codeExamples: [
+        {
+          description: 'Dynamic import pattern for named export (REQUIRED for Next.js)',
+          language: 'tsx',
+          code: `// In app/dashboard/[docId]/page.tsx (or wherever the editor is rendered)
+import dynamic from "next/dynamic";
+
+// ✅ CORRECT — .then() handles named export
+const TiptapCollabEditor = dynamic(
+  () => import("@/components/velt/TiptapCollabEditor").then(m => ({ default: m.TiptapCollabEditor })),
+  { ssr: false, loading: () => <div>Loading editor...</div> }
+);
+
+// ❌ WRONG — named export won't resolve without .then()
+const TiptapCollabEditor = dynamic(
+  () => import("@/components/velt/TiptapCollabEditor"),
+  { ssr: false }
+);`,
+        },
+      ],
     });
   }
 
@@ -369,13 +491,82 @@ In your page file, use \`dynamic(() => import(...), { ssr: false })\` — do NOT
       title: `MANDATORY: Add collaboration cursor CSS to globals.css`,
       details: `**Skill reference:** \`velt-crdt-best-practices\` → tiptap-cursor-css rule
 
-Without this CSS, remote user cursors appear as thick full-width blocks instead of thin carets.
+Without this CSS, remote user cursors appear as thick full-width blocks instead of thin carets. Add the CSS below to your globals.css file.`,
+      codeExamples: [
+        {
+          description: 'Collaboration cursor CSS (add to globals.css)',
+          language: 'css',
+          code: `/* ===== y-prosemirror cursors (used by Velt CRDT) ===== */
+.ProseMirror .ProseMirror-yjs-cursor {
+  position: relative;
+  border-left: 2px solid #0d0d0d;
+  border-right: none;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  word-break: normal;
+}
 
-Follow the skill rule exactly — it targets BOTH:
-- \`.ProseMirror-yjs-cursor\` classes (from y-prosemirror, used by Velt CRDT)
-- \`.collaboration-cursor__caret\` classes (from @tiptap/extension-collaboration-cursor)
+/* CRITICAL: Force inline to prevent full-width cursor block */
+.ProseMirror .ProseMirror-yjs-cursor > span {
+  display: inline !important;
+}
 
-Critical: the \`> span { display: inline !important }\` rule is required to prevent block-level rendering.`,
+/* Username label above caret */
+.ProseMirror .ProseMirror-yjs-cursor > div {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: normal;
+  line-height: normal;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px 3px 3px 0;
+  color: white;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Selection highlight for remote users */
+.ProseMirror .ProseMirror-yjs-selection {
+  opacity: 0.3;
+}
+
+/* ===== Tiptap collaboration-cursor extension ===== */
+.ProseMirror .collaboration-cursor__caret,
+.ProseMirror .collaboration-carets__caret {
+  border-left: 1px solid #0d0d0d !important;
+  border-right: 1px solid #0d0d0d !important;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  position: relative;
+  word-break: normal;
+}
+
+.ProseMirror .collaboration-cursor__label,
+.ProseMirror .collaboration-carets__label {
+  border-radius: 3px 3px 3px 0;
+  color: #0d0d0d;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  left: -1px;
+  line-height: normal;
+  padding: 0.1rem 0.3rem;
+  position: absolute;
+  top: -1.4em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Comment text highlights */
+velt-comment-text[comment-available="true"] {
+  background-color: rgba(255, 212, 0, 0.3);
+}`,
+        },
+      ],
     });
   }
 
