@@ -308,7 +308,9 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
 - Disable \`undoRedo\` in StarterKit (NOT \`history\` — StarterKit has no "history" option)
 - Use HTML strings for initialContent, NOT JSON objects (see tiptap-initial-content rule)
 - Set \`immediatelyRender: false\` in useEditor options
-- CRDT extension should be LAST in the extensions array`;
+- CRDT extension should be LAST in the extensions array
+- Install \`@floating-ui/dom\` (required peer dependency for BubbleMenu)
+- BubbleMenu import: \`import { BubbleMenu } from "@tiptap/react/menus"\` (SUBPATH EXPORT — not from @tiptap/react)`;
     } else if (crdtEditorType === 'codemirror') {
       skillRules = 'codemirror-setup-react, codemirror-ycollab, codemirror-editor-id';
       requirements = `- Use \`useVeltCodeMirrorCrdtExtension\` hook
@@ -323,12 +325,17 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
 
     const tiptapCodeExamples = crdtEditorType === 'tiptap' ? [
       {
-        description: 'Correct Tiptap CRDT editor pattern (use this exact structure)',
+        description: '⚠️ IMPORTANT: BubbleMenu is a SUBPATH EXPORT — import from @tiptap/react/menus, NOT @tiptap/react. It will NOT appear in @tiptap/react main exports. Requires @floating-ui/dom peer dependency. Do NOT create a custom selection toolbar — use BubbleMenu',
         language: 'tsx',
         code: `"use client";
 import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus"; // ⚠️ Tiptap v3: MUST be from @tiptap/react/menus, NOT @tiptap/react
+// ⚠️⚠️⚠️ BubbleMenu is a SUBPATH EXPORT in Tiptap v3
+// Import from "@tiptap/react/menus" — NOT from "@tiptap/react"
+// It will NOT show up if you inspect @tiptap/react exports
+// Requires: npm install @floating-ui/dom
+// Do NOT build a custom selection toolbar — use BubbleMenu
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { useVeltTiptapCrdtExtension } from "@veltdev/tiptap-crdt-react";
 import { TiptapVeltComments, addComment, renderComments } from "@veltdev/tiptap-velt-comments";
@@ -342,6 +349,7 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
     initialContent: initialContent || undefined,
   });
 
+  // ⚠️ MANDATORY: useCommentAnnotations + renderComments — without this, comments FREEZE the app
   const commentAnnotations = useCommentAnnotations();
 
   const editor = useEditor({
@@ -353,10 +361,10 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
     immediatelyRender: false,
   }, [VeltCrdt]);
 
-  // Render comment highlights — editorId is REQUIRED
+  // ⚠️ MANDATORY: Render comment highlights — without this the app FREEZES
   useEffect(() => {
     if (editor && commentAnnotations) {
-      renderComments({ editor, editorId, commentAnnotations }); // ⚠️ editorId REQUIRED
+      renderComments({ editor, editorId, commentAnnotations }); // editorId is REQUIRED
     }
   }, [editor, editorId, commentAnnotations]);
 
@@ -369,7 +377,7 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
         <BubbleMenu editor={editor}>
           <button onClick={(e) => {
             e.preventDefault();
-            addComment({ editor, editorId }); // ⚠️ editorId REQUIRED
+            addComment({ editor, editorId }); // editorId is REQUIRED
           }}>
             Add Comment
           </button>
@@ -399,15 +407,19 @@ ${requirements}`,
       title: `MANDATORY: Integrate TiptapVeltComments extension in editor`,
       details: `**Skill reference:** \`velt-crdt-best-practices\` → tiptap-comments-integration rule
 
-⚠️ WITHOUT THIS, THE APP WILL FREEZE WHEN COMMENTS ARE TRIGGERED.
+⚠️ WITHOUT THESE, THE APP WILL FREEZE WHEN COMMENTS ARE TRIGGERED.
 
-The global \`<VeltComments>\` component is necessary but NOT sufficient for editor comments.
-You MUST also:
-- Add \`TiptapVeltComments\` to the editor's extensions array (BEFORE the CRDT extension)
-- Use \`renderComments({ editor, editorId, commentAnnotations })\` in a useEffect — editorId is REQUIRED
-- Use \`addComment({ editor, editorId })\` for the comment trigger — editorId is REQUIRED
-- Import \`useCommentAnnotations\` from \`@veltdev/react\` to subscribe to comment data
-- Use \`BubbleMenu\` from \`@tiptap/react/menus\` (NOT \`@tiptap/react\`) for the comment trigger UI`,
+ALL of the following are REQUIRED (missing ANY ONE causes freeze):
+
+1. \`TiptapVeltComments\` in extensions array — BEFORE VeltCrdt
+2. \`useCommentAnnotations()\` hook — import from \`@veltdev/react\`
+3. \`renderComments({ editor, editorId, commentAnnotations })\` in a useEffect — ALL THREE params required
+4. \`addComment({ editor, editorId })\` for comment trigger — BOTH params required
+5. \`BubbleMenu\` from \`@tiptap/react/menus\` (SUBPATH EXPORT — will NOT appear in @tiptap/react main exports)
+
+⚠️ DO NOT create a custom selection toolbar. BubbleMenu EXISTS at \`@tiptap/react/menus\` — it is a subpath export that won't show up when inspecting \`@tiptap/react\`. Requires \`@floating-ui/dom\` peer dependency.
+
+⚠️ If the BubbleMenu import fails, run: \`npm install @floating-ui/dom\` and ensure the import path is \`@tiptap/react/menus\`.`,
       codeExamples: [
         {
           description: 'Extension order (CRITICAL — wrong order causes FREEZE)',
