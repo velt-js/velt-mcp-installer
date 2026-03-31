@@ -9,45 +9,71 @@
  */
 
 import { getDocUrl, getDocMarkdownUrl } from './velt-docs-urls.js';
-import { getSkillReferences } from './velt-docs-fetcher.js';
+import { getSkillReferences, getSkillRulePaths, SKILL_RULE_PATHS } from './velt-docs-fetcher.js';
 
 /**
- * Generates a "Skills & Sources" section for the plan output.
+ * Generates a prerequisite check section that tells the AI to verify skills exist.
+ */
+function formatPrerequisiteCheck(features) {
+  const requiredSkills = new Set(['velt-setup-best-practices']);
+  for (const feature of features) {
+    const paths = SKILL_RULE_PATHS[feature];
+    if (paths) requiredSkills.add(paths.skill);
+  }
+
+  let section = `## PREREQUISITE: Verify Skills Are Available\n\n`;
+  section += `Before implementing ANY step below, verify these agent-skills are installed:\n\n`;
+
+  for (const skill of requiredSkills) {
+    section += `- \`${skill}\`\n`;
+  }
+
+  section += `\nTo check: try reading \`skills/velt-setup-best-practices/AGENTS.md\`\n\n`;
+  section += `**IF skills are NOT found:**\n`;
+  section += `- STOP. Tell the user: "Velt Agent Skills are required. Install the Velt plugin or run: \`npx skills add velt-js/agent-skills\`"\n`;
+  section += `- Do NOT fall back to Velt Docs MCP. Do NOT improvise patterns.\n\n`;
+
+  return section;
+}
+
+/**
+ * Generates an "Implementation Sources" section for the plan output.
+ * Skills are the ONLY source. Velt Docs MCP is NOT listed as a source.
  */
 function formatSkillsSourceSection(features, options = {}) {
   const refs = getSkillReferences(features, options);
 
-  let section = `## Implementation Sources (Priority Order)\n\n`;
-  section += `> **PREREQUISITE:** Install Velt Agent Skills via \`npx skills add velt-js/agent-skills\`\n>\n`;
-  section += `> **Source Priority:** 1) Agent Skills (primary) → 2) Docs URLs (secondary) → 3) Velt Docs MCP (user follow-up only)\n\n`;
+  let section = `## Implementation Sources\n\n`;
+  section += `> **Agent Skills are the ONLY source for implementation patterns.**\n>\n`;
+  section += `> Do NOT query Velt Docs MCP during implementation.\n>\n`;
+  section += `> Velt Docs MCP may only be used for user follow-up questions AFTER implementation is complete.\n\n`;
 
   const skillRefs = refs.filter(r => r.skillName);
   const docsRefs = refs.filter(r => r.docsUrl);
 
   if (skillRefs.length > 0) {
-    section += `### Primary: Agent Skills (use these first)\n\n`;
+    section += `### Agent Skills (READ these before implementing)\n\n`;
     const seen = new Set();
     for (const ref of skillRefs) {
       if (!seen.has(ref.skillName)) {
         seen.add(ref.skillName);
         const feats = skillRefs.filter(r => r.skillName === ref.skillName).map(r => r.feature);
-        section += `- **${ref.skillName}** — covers: ${feats.join(', ')}${ref.description ? ` (${ref.description})` : ''}\n`;
+        const paths = Object.values(SKILL_RULE_PATHS).find(p => p.skill === ref.skillName);
+        const agentsPath = paths ? paths.agentsIndex : `skills/${ref.skillName}/AGENTS.md`;
+        section += `- **${ref.skillName}** — covers: ${feats.join(', ')}\n`;
+        section += `  - **READ:** \`${agentsPath}\`\n`;
       }
     }
     section += `\n`;
   }
 
   if (docsRefs.length > 0) {
-    section += `### Secondary: Docs URLs (for features without skills)\n\n`;
+    section += `### Docs URLs (for features without skills coverage)\n\n`;
     for (const ref of docsRefs) {
       section += `- ${ref.feature}: ${ref.docsUrl}\n`;
     }
     section += `\n`;
   }
-
-  section += `### Tertiary: Velt Docs MCP\n`;
-  section += `- Only use for user follow-up questions AFTER implementation\n`;
-  section += `- Do NOT query Velt Docs MCP during initial implementation if skills cover the feature\n\n`;
 
   return section;
 }
@@ -147,7 +173,7 @@ export function createVeltCommentsPlan(options) {
   // Step 2: Wire VeltProvider + CLI components
   steps.push({
     title: `Wire VeltProvider and CLI-generated components in ${locationText}`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → provider-wiring rules
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`provider-velt-provider-setup\` rule. Follow its patterns exactly.
 
 Use the CLI-generated files in \`components/velt/\`. Wire them following the skill patterns:
 - Import \`useVeltAuthProvider\` from \`components/velt/VeltInitializeUser.tsx\`
@@ -163,7 +189,7 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
   // Step 3: Configure authentication
   steps.push({
     title: `Set up authentication and JWT token generation`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → identity-jwt-generation, identity-user-object-shape rules
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`identity-jwt-generation\` and \`identity-user-object-shape\` rules. Follow their patterns exactly.
 
 Follow the skill patterns to:
 - Configure \`app/api/velt/token/route.ts\` for server-side JWT generation
@@ -181,7 +207,7 @@ Required variables: NEXT_PUBLIC_VELT_API_KEY, VELT_API_KEY, VELT_AUTH_TOKEN.`,
   // Step 5: Set up two-user testing
   steps.push({
     title: `Set up two-user testing`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → debug-multi-user-testing rule
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`debug-multi-user-testing\` rule. Follow its patterns exactly.
 
 The app MUST support testing with two different users. Follow the skill pattern:
 - Provide sign-in buttons for both Alice and Bob
@@ -204,21 +230,25 @@ The app MUST support testing with two different users. Follow the skill pattern:
   // Step 8: Check console
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
-    details: `Open browser DevTools Console and look for Velt errors. Common: "Please set document id", "Velt API key not found", "Failed to authenticate user". If errors occur, consult \`velt-setup-best-practices\` → debug-common-issues rule.`,
+    details: `Open browser DevTools Console and look for Velt errors. Common: "Please set document id", "Velt API key not found", "Failed to authenticate user". If errors occur, read \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`debug-common-issues\` rule.`,
   });
 
   // Additional info
   const additionalInfo = [
     {
       title: '🚨 CRITICAL IMPLEMENTATION RULES',
-      content: `**Source priority:** Agent Skills > Embedded Rules > Docs URLs
-- ✅ **velt-setup-best-practices** — VeltProvider, auth, document identity, project structure
-- ✅ **velt-comments-best-practices** — ${commentType} comments implementation patterns
-- Do NOT reimplement patterns from scratch — follow the skill rules exactly`,
+      content: `**Agent Skills are the ONLY source for implementation patterns.**
+
+- ✅ **READ:** \`skills/velt-setup-best-practices/AGENTS.md\` — VeltProvider, auth, document identity
+- ✅ **READ:** \`skills/velt-comments-best-practices/AGENTS.md\` — ${commentType} comments patterns
+- Do NOT reimplement patterns from scratch — follow the skill rules exactly
+- Do NOT query Velt Docs MCP during implementation — skills have everything needed
+- If a skill rule and this plan conflict, the skill rule is correct`,
     },
   ];
 
-  // Format and add skills section
+  // Format with prerequisite check and skills section
+  const prereq = formatPrerequisiteCheck(['comments']);
   const plan = formatInstallationPlan({
     title: `Plan for Velt ${commentTypeTitle} Comments Installation`,
     steps,
@@ -226,7 +256,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   });
 
   const skillsSection = formatSkillsSourceSection(['comments'], { commentType });
-  return plan + '\n' + skillsSection;
+  return prereq + '\n' + plan + '\n' + skillsSection;
 }
 
 
@@ -281,7 +311,7 @@ export function createMultiFeaturePlan(options) {
   // Step 2: Wire VeltProvider + CLI components
   steps.push({
     title: `Wire VeltProvider and CLI-generated components in ${locationText}`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → provider-wiring, identity rules
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`provider-velt-provider-setup\` and \`identity-auth-provider\` rules. Follow their patterns exactly.
 
 Use the CLI-generated files in \`components/velt/\`. Wire them following the skill patterns:
 - Import \`useVeltAuthProvider\` from \`components/velt/VeltInitializeUser.tsx\`
@@ -391,7 +421,7 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
 
     steps.push({
       title: `Create ${editorName} CRDT editor component`,
-      details: `**Skill reference:** \`velt-crdt-best-practices\` → ${skillRules}
+      details: `**READ FIRST:** \`skills/velt-crdt-best-practices/AGENTS.md\` → look up these rules: ${skillRules}. Read each rule file and follow their patterns exactly.
 
 Create \`components/velt/${editorName}CollabEditor.tsx\` following the skill patterns.
 
@@ -405,7 +435,7 @@ ${requirements}`,
   if (hasComments && hasCRDT && crdtEditorType) {
     steps.push({
       title: `MANDATORY: Integrate TiptapVeltComments extension in editor`,
-      details: `**Skill reference:** \`velt-crdt-best-practices\` → tiptap-comments-integration rule
+      details: `**READ FIRST:** \`skills/velt-crdt-best-practices/AGENTS.md\` → look up \`tiptap-comments-integration\` rule. Follow its patterns exactly.
 
 ⚠️ WITHOUT THESE, THE APP WILL FREEZE WHEN COMMENTS ARE TRIGGERED.
 
@@ -469,7 +499,7 @@ useEffect(() => {
   if (hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Load editor with next/dynamic (SSR safety)`,
-      details: `**Skill reference:** \`velt-crdt-best-practices\` → tiptap-nextjs-ssr rule
+      details: `**READ FIRST:** \`skills/velt-crdt-best-practices/AGENTS.md\` → look up \`tiptap-nextjs-ssr\` rule. Follow its patterns exactly.
 
 Tiptap and @veltdev/tiptap-velt-comments use browser-only APIs. In Next.js, the editor component MUST be loaded with \`next/dynamic\` and \`ssr: false\` in the page that renders it. Without this, the app will crash with a \`g.catch is not a function\` error.
 
@@ -501,7 +531,7 @@ const TiptapCollabEditor = dynamic(
   if (hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Add collaboration cursor CSS to globals.css`,
-      details: `**Skill reference:** \`velt-crdt-best-practices\` → tiptap-cursor-css rule
+      details: `**READ FIRST:** \`skills/velt-crdt-best-practices/AGENTS.md\` → look up \`tiptap-cursor-css\` rule. Follow its patterns exactly.
 
 Without this CSS, remote user cursors appear as thick full-width blocks instead of thin carets. Add the CSS below to your globals.css file.`,
       codeExamples: [
@@ -585,7 +615,7 @@ velt-comment-text[comment-available="true"] {
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → identity-jwt-generation, identity-user-object-shape rules
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`identity-jwt-generation\` and \`identity-user-object-shape\` rules. Follow their patterns exactly.
 
 Follow the skill patterns to:
 - Configure \`app/api/velt/token/route.ts\` for server-side JWT generation
@@ -603,7 +633,7 @@ Required variables: NEXT_PUBLIC_VELT_API_KEY, VELT_API_KEY, VELT_AUTH_TOKEN.`,
   // Step 9: Two-user testing
   steps.push({
     title: `Set up two-user testing`,
-    details: `**Skill reference:** \`velt-setup-best-practices\` → debug-multi-user-testing rule
+    details: `**READ FIRST:** \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`debug-multi-user-testing\` rule. Follow its patterns exactly.
 
 The app MUST support testing with two different users. Follow the skill pattern:
 - Provide sign-in buttons for both Alice and Bob
@@ -633,30 +663,32 @@ The app MUST support testing with two different users. Follow the skill pattern:
   // Step 12: Check console
   steps.push({
     title: `Check browser console for Velt errors/warnings`,
-    details: `Open browser DevTools Console and look for Velt errors. Common: "Please set document id", "Velt API key not found", "Failed to authenticate user". If errors occur, consult \`velt-setup-best-practices\` → debug-common-issues rule.`,
+    details: `Open browser DevTools Console and look for Velt errors. Common: "Please set document id", "Velt API key not found", "Failed to authenticate user". If errors occur, read \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`debug-common-issues\` rule.`,
   });
 
   // Additional info
   const skillsList = [];
-  skillsList.push('- ✅ **velt-setup-best-practices** — VeltProvider, auth, document identity, project structure');
-  if (hasComments) skillsList.push(`- ✅ **velt-comments-best-practices** — ${commentType} comments implementation patterns`);
-  if (hasCRDT) skillsList.push(`- ✅ **velt-crdt-best-practices** — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
-  if (hasNotifications) skillsList.push('- ✅ **velt-notifications-best-practices** — notifications setup and customization');
+  skillsList.push('- ✅ **READ:** `skills/velt-setup-best-practices/AGENTS.md` — VeltProvider, auth, document identity');
+  if (hasComments) skillsList.push(`- ✅ **READ:** \`skills/velt-comments-best-practices/AGENTS.md\` — ${commentType} comments patterns`);
+  if (hasCRDT) skillsList.push(`- ✅ **READ:** \`skills/velt-crdt-best-practices/AGENTS.md\` — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
+  if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
 
   const additionalInfo = [
     {
       title: '🚨 CRITICAL IMPLEMENTATION RULES',
-      content: `**Source priority:** Agent Skills > Embedded Rules > Docs URLs
+      content: `**Agent Skills are the ONLY source for implementation patterns.**
 
 ${skillsList.join('\n')}
 
 - Do NOT reimplement patterns from scratch — follow the skill rules exactly
 - If a skill rule and this plan conflict, the skill rule is correct
+- Do NOT query Velt Docs MCP during implementation — skills have everything needed
 - Do NOT create files outside \`components/velt/\` unless necessary for app-specific wiring`,
     },
   ];
 
-  // Format and add skills section
+  // Format with prerequisite check and skills section
+  const prereq = formatPrerequisiteCheck(features);
   const plan = formatInstallationPlan({
     title: `Plan for Velt ${featureList.join(' + ')} Installation`,
     steps,
@@ -664,7 +696,7 @@ ${skillsList.join('\n')}
   });
 
   const skillsSection = formatSkillsSourceSection(features, { commentType, crdtEditorType });
-  return plan + '\n' + skillsSection;
+  return prereq + '\n' + plan + '\n' + skillsSection;
 }
 
 
@@ -718,11 +750,11 @@ ${validationLines}
 
 ## 📋 Next Steps
 
-**Skill reference:** Install agent-skills via \`npx skills add velt-js/agent-skills\`, then follow:
-- \`velt-setup-best-practices\` — for VeltProvider wiring, auth, document setup
-- \`velt-comments-best-practices\` — for comments integration
-- \`velt-crdt-best-practices\` — for CRDT/collaborative editing
-- \`velt-notifications-best-practices\` — for notifications
+**Next:** Install agent-skills via \`npx skills add velt-js/agent-skills\`, then READ these skill files:
+- \`skills/velt-setup-best-practices/AGENTS.md\` — VeltProvider wiring, auth, document setup
+- \`skills/velt-comments-best-practices/AGENTS.md\` — comments integration
+- \`skills/velt-crdt-best-practices/AGENTS.md\` — CRDT/collaborative editing
+- \`skills/velt-notifications-best-practices/AGENTS.md\` — notifications
 
 Or re-run the installer with specific features (don't type SKIP) for guided setup.
 
@@ -730,7 +762,7 @@ Or re-run the installer with specific features (don't type SKIP) for guided setu
 
 ## ⚠️ Common Issues
 
-Consult \`velt-setup-best-practices\` → debug-common-issues rule for:
+Read \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`debug-common-issues\` rule for:
 - "Velt API key not found" — check .env.local
 - "Please set document id" — check VeltInitializeDocument
 - "Failed to authenticate user" — check user object fields
@@ -743,6 +775,7 @@ Consult \`velt-setup-best-practices\` → debug-common-issues rule for:
 
 export default {
   formatInstallationPlan,
+  formatPrerequisiteCheck,
   formatSkillsSourceSection,
   createVeltCommentsPlan,
   createMultiFeaturePlan,

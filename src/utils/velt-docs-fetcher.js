@@ -1,25 +1,23 @@
 /**
  * Velt Docs Fetcher
  *
- * Fetches Velt documentation from markdown (.md) URLs with fallback to Velt Docs MCP.
- * For post-installation questions/troubleshooting, AI should query Velt Docs MCP directly.
+ * Fetches Velt documentation from markdown (.md) URLs.
  *
- * Source Priority:
- * 1. Agent Skills Libraries (installed via `npx skills add velt-js/agent-skills`)
- *    - Referenced by name in plan output; AI editor loads them automatically
- * 2. Docs URLs (docs.velt.dev markdown) - for features without skills coverage
- * 3. Velt Docs MCP - only on explicit user follow-up questions
+ * Source Architecture:
+ * - Agent Skills are the ONLY source for implementation patterns.
+ *   The MCP plan tells the AI which skill files to READ before implementing.
+ * - Docs URLs provide supplementary context for features without skill coverage.
+ * - Velt Docs MCP should NEVER be used during implementation if skills are available.
+ *   It may only be used for user follow-up questions AFTER implementation is complete.
  */
 
 import { getDocUrl, getDocMarkdownUrl } from './velt-docs-urls.js';
 import { queryVeltDocsMCP } from './velt-mcp-client.js';
 
 /**
- * Maps Velt features to their corresponding Agent Skill names.
- * Skills are installed via `npx skills add velt-js/agent-skills` and
- * loaded into the AI editor's context automatically.
- *
- * The MCP references these by name in plan output — it does NOT read skill files.
+ * Maps Velt features to their Agent Skill names and key rule file paths.
+ * Skills are the ONLY source for implementation patterns.
+ * The MCP plan tells the AI to READ specific skill rule files before implementing each step.
  */
 export const FEATURE_SKILL_MAP = {
   // Setup / Provider / Auth / Document
@@ -42,6 +40,93 @@ export const FEATURE_SKILL_MAP = {
   // cursors: null,
   // recorder: null,
 };
+
+/**
+ * Maps features to specific skill rule file paths and the AGENTS.md index.
+ * The MCP plan uses these to generate "READ FIRST:" directives with exact file paths.
+ */
+export const SKILL_RULE_PATHS = {
+  setup: {
+    skill: 'velt-setup-best-practices',
+    agentsIndex: 'skills/velt-setup-best-practices/AGENTS.md',
+    keyRules: [
+      'provider-velt-provider-setup',
+      'identity-jwt-generation',
+      'identity-user-object-shape',
+      'identity-auth-provider',
+      'document-set-document',
+      'debug-multi-user-testing',
+      'debug-common-issues',
+    ],
+  },
+  comments: {
+    skill: 'velt-comments-best-practices',
+    agentsIndex: 'skills/velt-comments-best-practices/AGENTS.md',
+    keyRules: [
+      'core-provider-setup',
+      'core-authentication',
+      'mode-freestyle',
+      'mode-popover',
+      'mode-stream',
+      'mode-text',
+      'mode-page',
+      'mode-tiptap',
+      'mode-lexical',
+      'mode-slatejs',
+      'mode-quill',
+      'mode-plate',
+      'mode-codemirror-comments',
+      'mode-ace',
+    ],
+  },
+  crdt: {
+    skill: 'velt-crdt-best-practices',
+    agentsIndex: 'skills/velt-crdt-best-practices/AGENTS.md',
+    keyRules: [
+      'tiptap-setup-react',
+      'tiptap-cursor-css',
+      'tiptap-comments-integration',
+      'tiptap-disable-history',
+      'tiptap-nextjs-ssr',
+      'tiptap-initial-content',
+      'tiptap-editor-id',
+      'blocknote-setup-react',
+      'blocknote-editor-id',
+      'codemirror-setup-react',
+      'codemirror-ycollab',
+      'codemirror-editor-id',
+      'reactflow-setup-react',
+      'reactflow-handlers',
+      'reactflow-editor-id',
+    ],
+  },
+  notifications: {
+    skill: 'velt-notifications-best-practices',
+    agentsIndex: 'skills/velt-notifications-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'panel-tabs',
+      'panel-display',
+    ],
+  },
+};
+
+/**
+ * Returns the AGENTS.md index path and relevant rule names for a feature.
+ *
+ * @param {string} feature - Feature name
+ * @param {string[]} [specificRules] - Optional list of specific rule names to include
+ * @returns {{ agentsIndex: string, rules: string[] } | null}
+ */
+export function getSkillRulePaths(feature, specificRules = null) {
+  const paths = SKILL_RULE_PATHS[feature];
+  if (!paths) return null;
+
+  return {
+    agentsIndex: paths.agentsIndex,
+    rules: specificRules || paths.keyRules,
+  };
+}
 
 /**
  * Returns the Agent Skill name for a given feature, or null if no skill covers it.
@@ -283,6 +368,8 @@ export default {
   fetchFeatureImplementation,
   fetchCrdtImplementation,
   FEATURE_SKILL_MAP,
+  SKILL_RULE_PATHS,
   getSkillForFeature,
   getSkillReferences,
+  getSkillRulePaths,
 };

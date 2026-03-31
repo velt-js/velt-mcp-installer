@@ -142,9 +142,11 @@ export async function createServer() {
         name: 'install_velt_interactive',
         description:
           '🌟 RECOMMENDED: Unified Velt installation with guided or CLI-only mode. ' +
-          '\n\n📚 PREREQUISITE: Install Velt Agent Skills via `npx skills add velt-js/agent-skills`' +
-          '\nThe generated plan references these skills as the PRIMARY implementation guide.' +
-          '\nSkills installed: velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices' +
+          '\n\n📚 REQUIRED: Velt Agent Skills must be installed.' +
+          '\nSkills provide ALL implementation patterns. Without them, this tool cannot generate a working plan.' +
+          '\nDo NOT use Velt Docs MCP as a substitute for skills.' +
+          '\nSkills: velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices' +
+          '\nThe generated plan tells the AI which skill files to READ before each implementation step.' +
           '\n\n🚨🚨🚨 CRITICAL: ASK QUESTIONS ONE AT A TIME 🚨🚨🚨' +
           '\nDO NOT dump all questions in one message.' +
           '\nWait for user response before asking the next question.' +
