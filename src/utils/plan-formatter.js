@@ -367,7 +367,7 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
       <EditorContent editor={editor} />
       {editor && (
         <BubbleMenu editor={editor}>
-          <button onMouseDown={(e) => {
+          <button onClick={(e) => {
             e.preventDefault();
             addComment({ editor, editorId }); // ⚠️ editorId REQUIRED
           }}>
@@ -443,7 +443,7 @@ useEffect(() => {
 
 // BubbleMenu with comment button — editorId is REQUIRED
 <BubbleMenu editor={editor}>
-  <button onMouseDown={(e) => {
+  <button onClick={(e) => {
     e.preventDefault();
     addComment({ editor, editorId });
   }}>Add Comment</button>
