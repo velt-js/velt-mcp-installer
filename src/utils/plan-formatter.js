@@ -325,7 +325,7 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
 
     const tiptapCodeExamples = crdtEditorType === 'tiptap' ? [
       {
-        description: '⚠️ IMPORTANT: BubbleMenu is a SUBPATH EXPORT — import from @tiptap/react/menus, NOT @tiptap/react. It will NOT appear in @tiptap/react main exports. Requires @floating-ui/dom peer dependency. Do NOT create a custom selection toolbar — use BubbleMenu',
+        description: '⚠️ CRITICAL: Use this EXACT code. BubbleMenu is a SUBPATH EXPORT at "@tiptap/react/menus" — it CANNOT be verified using Node.js require() or import() in the terminal (it only resolves through webpack/Next.js bundler). Do NOT try to verify it in shell. Do NOT use @tiptap/extension-bubble-menu (that exports the headless extension class, not the React component). Do NOT create a custom selection toolbar. Requires: npm install @floating-ui/dom',
         language: 'tsx',
         code: `"use client";
 import { useEffect } from "react";
