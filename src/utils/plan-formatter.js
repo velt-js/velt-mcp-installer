@@ -633,20 +633,28 @@ Follow the \`core-setup\` rule exactly — it has the complete RecordingPlayback
   // Step: Single Editor Mode setup (conditional)
   if (hasSingleEditor) {
     steps.push({
-      title: `Add Single Editor Mode with editor/viewer roles`,
-      details: `**READ FIRST:** \`skills/velt-single-editor-mode-best-practices/AGENTS.md\` → look up \`core-setup\` and \`state-set-user-editor\` rules. Follow their patterns exactly.
+      title: `Add Single Editor Mode with live sync and editor status UI`,
+      details: `**READ FIRST:** \`skills/velt-single-editor-mode-best-practices/AGENTS.md\` → look up \`core-setup\` rule. Follow its patterns exactly.
 
-Single Editor Mode restricts editing to one user at a time. The skill rule has the complete setup:
-- \`SingleEditorSetup\` component using \`useLiveStateSyncUtils\` + \`VeltSingleEditorModePanel\`
-- \`enableSingleEditorMode()\` with \`customMode: false\` and \`singleTabEditor: true\`
-- \`enableDefaultSingleEditorUI()\` for the built-in access request panel
-- \`setUserAsEditor()\` to assign initial editor
+Single Editor Mode restricts editing to one user at a time with live content sync. The skill rule has the complete setup across two files:
 
-**Test user roles:**
-- \`?user=user-1\` (Alice) → starts as the **editor** (can edit content)
-- \`?user=user-2\` (Bob) → starts as a **viewer** (read-only, can request access)
+**VeltCollaboration changes:**
+- \`useLiveStateSyncUtils\` + \`useVeltInitState\` — wait for Velt init, then auto-claim editor
+- \`enableSingleEditorMode()\`, \`enableDefaultSingleEditorUI()\`, \`enableAutoSyncState()\`
+- \`singleEditorModeContainerIds(['document-content'])\` — scope SEM to content area only
+- \`setUserAsEditor()\` with all 3 error codes handled
+- \`VeltSingleEditorModePanel\` for access request UI
 
-Follow the \`core-setup\` rule exactly — it has the complete SingleEditorSetup component code with user role wiring.`,
+**Document page changes:**
+- \`DocumentContent\` component as CHILD of VeltProvider (hooks need context)
+- Editor status banner using \`useUserEditorState()\` + \`useEditor()\` — green "You are the editor" / yellow "[Name] is currently editing"
+- Content area with \`id="document-content"\`, \`contentEditable\`, \`data-velt-sync-access="true"\`, \`data-velt-sync-state="true"\`
+
+**Testing:**
+- \`?user=user-1\` (Alice) → claims editor, green banner, can edit
+- \`?user=user-2\` (Bob) → viewer, yellow banner, sees live changes, cannot edit
+
+Follow the \`core-setup\` rule exactly — it has complete code for both files.`,
     });
   }
 
