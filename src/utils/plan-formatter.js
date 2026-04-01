@@ -634,27 +634,20 @@ Follow the \`core-setup\` rule exactly — it has the complete RecordingPlayback
   if (hasSingleEditor) {
     steps.push({
       title: `Add Single Editor Mode with live sync and editor status UI`,
-      details: `**READ FIRST:** \`skills/velt-single-editor-mode-best-practices/AGENTS.md\` → look up \`core-setup\` rule. Follow its patterns exactly.
+      details: `**READ FIRST:** \`skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md\` — this file contains the COMPLETE implementation code for both files below. Do NOT implement from this summary — read the rule file and copy its code examples exactly.
 
-Single Editor Mode restricts editing to one user at a time with live content sync. The skill rule has the complete setup across two files:
+Single Editor Mode requires changes in TWO files. The rule file has complete, copy-ready code for both:
 
-**VeltCollaboration changes:**
-- \`useLiveStateSyncUtils\` + \`useVeltInitState\` — wait for Velt init, then auto-claim editor
-- \`enableSingleEditorMode()\`, \`enableDefaultSingleEditorUI()\`, \`enableAutoSyncState()\`
-- \`singleEditorModeContainerIds(['document-content'])\` — scope SEM to content area only
-- \`setUserAsEditor()\` with all 3 error codes handled
-- \`VeltSingleEditorModePanel\` for access request UI
+1. **VeltCollaboration component** — SEM config, auto-sync, container scoping, and auto-claim editor role
+2. **Document page** — \`DocumentContent\` inner component with editor status banner and synced content area
 
-**Document page changes:**
-- \`DocumentContent\` component as CHILD of VeltProvider (hooks need context)
-- Editor status banner using \`useUserEditorState()\` + \`useEditor()\` — green "You are the editor" / yellow "[Name] is currently editing"
-- Content area with \`id="document-content"\`, \`contentEditable\`, \`data-velt-sync-access="true"\`, \`data-velt-sync-state="true"\`
+⚠️ Do NOT skip reading the rule file. Do NOT implement from method names alone. The rule has exact code that MUST be copied — partial implementation breaks SEM.
 
 **Testing:**
 - \`?user=user-1\` (Alice) → claims editor, green banner, can edit
 - \`?user=user-2\` (Bob) → viewer, yellow banner, sees live changes, cannot edit
 
-Follow the \`core-setup\` rule exactly — it has complete code for both files.`,
+**If SEM doesn't work on first try:** Re-read \`core-setup.md\` and diff your code against its examples. Do NOT add timeouts, do NOT make \`contentEditable\` conditional, do NOT use \`useCurrentUser()\` to gate \`setUserAsEditor()\`.`,
     });
   }
 
@@ -720,7 +713,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasCRDT) skillsList.push(`- ✅ **READ:** \`skills/velt-crdt-best-practices/AGENTS.md\` — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
   if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
   if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
-  if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/AGENTS.md` — single editor mode setup');
+  if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md` — single editor mode setup (read this file directly, NOT AGENTS.md)');
 
   const additionalInfo = [
     {
