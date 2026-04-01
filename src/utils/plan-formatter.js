@@ -289,6 +289,7 @@ export function createMultiFeaturePlan(options) {
   const hasNotifications = features.includes('notifications');
   const hasRecorder = features.includes('recorder');
   const hasCRDT = features.includes('crdt');
+  const hasSingleEditor = features.includes('single-editor-mode');
 
   const featureList = [];
   if (hasComments) featureList.push(`${commentType.charAt(0).toUpperCase() + commentType.slice(1)} Comments`);
@@ -297,6 +298,7 @@ export function createMultiFeaturePlan(options) {
   if (hasNotifications) featureList.push('Notifications');
   if (hasRecorder) featureList.push('Recorder');
   if (hasCRDT) featureList.push(`CRDT (${crdtEditorType ? crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1) : 'Collaborative Editing'})`);
+  if (hasSingleEditor) featureList.push('Single Editor Mode');
 
   const locationText = veltProviderLocation === 'auto-detect'
     ? 'the appropriate page file'
@@ -628,6 +630,26 @@ Follow the \`core-setup\` rule exactly — it has the complete RecordingPlayback
     });
   }
 
+  // Step: Single Editor Mode setup (conditional)
+  if (hasSingleEditor) {
+    steps.push({
+      title: `Add Single Editor Mode with editor/viewer roles`,
+      details: `**READ FIRST:** \`skills/velt-single-editor-mode-best-practices/AGENTS.md\` → look up \`core-setup\` and \`state-set-user-editor\` rules. Follow their patterns exactly.
+
+Single Editor Mode restricts editing to one user at a time. The skill rule has the complete setup:
+- \`SingleEditorSetup\` component using \`useLiveStateSyncUtils\` + \`VeltSingleEditorModePanel\`
+- \`enableSingleEditorMode()\` with \`customMode: false\` and \`singleTabEditor: true\`
+- \`enableDefaultSingleEditorUI()\` for the built-in access request panel
+- \`setUserAsEditor()\` to assign initial editor
+
+**Test user roles:**
+- \`?user=user-1\` (Alice) → starts as the **editor** (can edit content)
+- \`?user=user-2\` (Bob) → starts as a **viewer** (read-only, can request access)
+
+Follow the \`core-setup\` rule exactly — it has the complete SingleEditorSetup component code with user role wiring.`,
+    });
+  }
+
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
@@ -670,6 +692,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasCursors) testInstructions.push('Cursors: Open in two browser windows and verify thin caret cursors with name labels');
   if (hasNotifications) testInstructions.push('Notifications: Check the notification bell icon appears');
   if (hasRecorder) testInstructions.push('Recorder: Check the recorder controls appear');
+  if (hasSingleEditor) testInstructions.push('Single Editor Mode: Open ?user=user-1 (editor) and ?user=user-2 (viewer) — user-2 should see read-only mode with access request panel');
 
   steps.push({
     title: `Test all requested features`,
@@ -689,6 +712,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasCRDT) skillsList.push(`- ✅ **READ:** \`skills/velt-crdt-best-practices/AGENTS.md\` — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
   if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
   if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
+  if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/AGENTS.md` — single editor mode setup');
 
   const additionalInfo = [
     {

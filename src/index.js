@@ -168,6 +168,7 @@ export async function createServer() {
           '\n    📝 Comments (specify type: freestyle/popover/page/text/inline/tiptap/lexical/slate)' +
           '\n    👥 Presence | 🖱️ Cursors | 🔔 Notifications | 🎥 Recorder' +
           '\n    📄 CRDT (specify editor: tiptap/codemirror/blocknote)' +
+          '\n    🔒 Single Editor Mode (one user edits at a time, others view)' +
           '\n    ⏭️  SKIP = CLI scaffolding only, no feature integration' +
           '\n  WAIT for user response.' +
           '\n\n=========================================' +
@@ -257,7 +258,7 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt', 'single-editor-mode'],
               },
               description: 'Features to install (guided mode only).',
             },

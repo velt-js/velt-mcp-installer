@@ -38,6 +38,9 @@ export const FEATURE_SKILL_MAP = {
   // Recorder
   recorder: 'velt-recorder-best-practices',
 
+  // Single Editor Mode
+  'single-editor-mode': 'velt-single-editor-mode-best-practices',
+
   // Features WITHOUT skills coverage — use docs URLs
   // presence: null,
   // cursors: null,
@@ -122,6 +125,17 @@ export const SKILL_RULE_PATHS = {
       'data-hooks',
       'events-lifecycle',
       'editor-standalone',
+    ],
+  },
+  'single-editor-mode': {
+    skill: 'velt-single-editor-mode-best-practices',
+    agentsIndex: 'skills/velt-single-editor-mode-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'state-set-user-editor',
+      'state-editor-api',
+      'access-editor-side',
+      'access-viewer-side',
     ],
   },
 };

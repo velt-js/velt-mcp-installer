@@ -53,6 +53,12 @@ export const VELT_DOCS_URLS = {
     customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/cursors/customize-behavior',
   },
 
+  // Single Editor Mode
+  'single-editor-mode': {
+    setup: 'https://docs.velt.dev/realtime-collaboration/single-editor-mode/setup',
+    customizeBehavior: 'https://docs.velt.dev/realtime-collaboration/single-editor-mode/customize-behavior',
+  },
+
   // CRDT (Collaborative Real-Time Document editing)
   crdt: {
     setup: {
