@@ -70,6 +70,15 @@ export const VELT_DOCS_URLS = {
     overview: 'https://docs.velt.dev/multiplayer-editing/overview',
   },
 
+  // Self-Hosting Data
+  'self-hosting-data': {
+    overview: 'https://docs.velt.dev/self-host-data/overview',
+    comments: 'https://docs.velt.dev/self-host-data/comments',
+    attachments: 'https://docs.velt.dev/self-host-data/attachments',
+    users: 'https://docs.velt.dev/self-host-data/users',
+    reactions: 'https://docs.velt.dev/self-host-data/reactions',
+  },
+
 };
 
 /**

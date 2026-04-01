@@ -290,6 +290,7 @@ export function createMultiFeaturePlan(options) {
   const hasRecorder = features.includes('recorder');
   const hasCRDT = features.includes('crdt');
   const hasSingleEditor = features.includes('single-editor-mode');
+  const hasSelfHostingData = features.includes('self-hosting-data');
 
   const featureList = [];
   if (hasComments) featureList.push(`${commentType.charAt(0).toUpperCase() + commentType.slice(1)} Comments`);
@@ -299,6 +300,7 @@ export function createMultiFeaturePlan(options) {
   if (hasRecorder) featureList.push('Recorder');
   if (hasCRDT) featureList.push(`CRDT (${crdtEditorType ? crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1) : 'Collaborative Editing'})`);
   if (hasSingleEditor) featureList.push('Single Editor Mode');
+  if (hasSelfHostingData) featureList.push('Self-Hosting Data');
 
   const locationText = veltProviderLocation === 'auto-detect'
     ? 'the appropriate page file'
@@ -651,6 +653,35 @@ Single Editor Mode requires changes in TWO files. The rule file has complete, co
     });
   }
 
+  // Step: Self-Hosting Data setup (conditional)
+  if (hasSelfHostingData) {
+    steps.push({
+      title: `Configure self-hosting data providers and backend API routes`,
+      details: `**READ FIRST:** \`skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md\` — this file has the complete VeltProvider dataProviders configuration. Then read \`rules/shared/core/core-response-format.md\` for the required response contract. Do NOT implement from this summary — read the rule files and copy their code examples exactly.
+
+Self-hosting stores user-generated content (comments, attachments, reactions, user PII) on YOUR infrastructure instead of Velt's cloud. Implementation requires THREE things:
+
+1. **VeltDataProviders.ts** — function-based data providers with get/save/delete for each data type
+2. **API routes** — \`app/api/velt/{comments,users,attachments,reactions}/{get,save,delete}/route.ts\`
+3. **Database store** — \`app/api/velt/store.ts\` with connection pool, table init, and UPSERT operations
+
+The \`dataProviders\` prop MUST be set on VeltProvider BEFORE identify() is called.
+
+**After core setup, read these rules in order:**
+- \`rules/shared/comment/comment-function-provider.md\` — comment get/save/delete pattern
+- \`rules/shared/attachment/attachment-multipart-provider.md\` — attachment handling (base64 for Next.js)
+- \`rules/shared/provider/provider-user-resolver.md\` — user PII provider (read-only)
+- \`rules/shared/provider/provider-reaction-recording.md\` — reaction provider pattern
+- \`rules/shared/backend/backend-api-routes.md\` — API route structure
+- \`rules/shared/backend/backend-database-patterns.md\` — PostgreSQL UPSERT patterns
+
+**Environment variables needed:**
+- \`DATABASE_URL\` — PostgreSQL connection string
+
+**Testing:** After implementation, open browser DevTools console. The Velt SDK logs data provider events showing each get/save/delete call and whether it succeeded.`,
+    });
+  }
+
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
@@ -714,6 +745,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
   if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
   if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md` — single editor mode setup (read this file directly, NOT AGENTS.md)');
+  if (hasSelfHostingData) skillsList.push('- ✅ **READ:** `skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md` — self-hosting data providers (read this file directly, NOT AGENTS.md)');
 
   const additionalInfo = [
     {

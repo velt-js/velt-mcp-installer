@@ -138,6 +138,20 @@ export const SKILL_RULE_PATHS = {
       'access-viewer-side',
     ],
   },
+  'self-hosting-data': {
+    skill: 'velt-self-hosting-data-best-practices',
+    agentsIndex: 'skills/velt-self-hosting-data-best-practices/AGENTS.md',
+    keyRules: [
+      'core-provider-setup',
+      'core-response-format',
+      'comment-function-provider',
+      'attachment-multipart-provider',
+      'provider-user-resolver',
+      'provider-reaction-recording',
+      'backend-api-routes',
+      'backend-database-patterns',
+    ],
+  },
 };
 
 /**
