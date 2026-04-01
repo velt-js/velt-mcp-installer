@@ -35,10 +35,12 @@ export const FEATURE_SKILL_MAP = {
   // Notifications
   notifications: 'velt-notifications-best-practices',
 
+  // Recorder
+  recorder: 'velt-recorder-best-practices',
+
   // Features WITHOUT skills coverage — use docs URLs
   // presence: null,
   // cursors: null,
-  // recorder: null,
 };
 
 /**
@@ -107,6 +109,19 @@ export const SKILL_RULE_PATHS = {
       'core-setup',
       'panel-tabs',
       'panel-display',
+    ],
+  },
+  recorder: {
+    skill: 'velt-recorder-best-practices',
+    agentsIndex: 'skills/velt-recorder-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'core-permissions',
+      'config-type-and-mode',
+      'config-quality-encoding',
+      'data-hooks',
+      'events-lifecycle',
+      'editor-standalone',
     ],
   },
 };

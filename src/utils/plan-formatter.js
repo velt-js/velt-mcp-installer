@@ -612,6 +612,20 @@ velt-comment-text[comment-available="true"] {
     });
   }
 
+  // Step: Recorder setup (conditional)
+  if (hasRecorder) {
+    steps.push({
+      title: `Add Velt Recorder component`,
+      details: `**READ FIRST:** \`skills/velt-recorder-best-practices/AGENTS.md\` → look up \`core-setup\` and \`core-permissions\` rules. Follow their patterns exactly.
+
+Add the VeltRecorderTool component to your UI:
+- Import \`VeltRecorderTool\` from \`@veltdev/react\`
+- Place it in the toolbar/header area
+- Configure recording type (audio, video, screen) as needed
+- Handle browser permissions for microphone/camera access`,
+    });
+  }
+
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
@@ -672,6 +686,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasComments) skillsList.push(`- ✅ **READ:** \`skills/velt-comments-best-practices/AGENTS.md\` — ${commentType} comments patterns`);
   if (hasCRDT) skillsList.push(`- ✅ **READ:** \`skills/velt-crdt-best-practices/AGENTS.md\` — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
   if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
+  if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
 
   const additionalInfo = [
     {
