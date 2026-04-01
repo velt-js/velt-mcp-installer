@@ -431,8 +431,8 @@ ${requirements}`,
     });
   }
 
-  // Step 4: Comments integration with editor (conditional)
-  if (hasComments && hasCRDT && crdtEditorType) {
+  // Step 4: Comments integration with editor (conditional, tiptap only — other editors handle comments differently)
+  if (hasComments && hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Integrate TiptapVeltComments extension in editor`,
       details: `**READ FIRST:** \`skills/velt-crdt-best-practices/AGENTS.md\` → look up \`tiptap-comments-integration\` rule. Follow its patterns exactly.
