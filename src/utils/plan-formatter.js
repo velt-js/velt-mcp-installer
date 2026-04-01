@@ -615,14 +615,16 @@ velt-comment-text[comment-available="true"] {
   // Step: Recorder setup (conditional)
   if (hasRecorder) {
     steps.push({
-      title: `Add Velt Recorder component`,
+      title: `Add Velt Recorder with playback and pinned notes`,
       details: `**READ FIRST:** \`skills/velt-recorder-best-practices/AGENTS.md\` → look up \`core-setup\` and \`core-permissions\` rules. Follow their patterns exactly.
 
-Add the VeltRecorderTool component to your UI:
-- Import \`VeltRecorderTool\` from \`@veltdev/react\`
-- Place it in the toolbar/header area
-- Configure recording type (audio, video, screen) as needed
-- Handle browser permissions for microphone/camera access`,
+The recorder requires 4 components (all defined in the skill rule):
+- \`VeltRecorderTool type="all"\` — in the toolbar (audio/video/screen recording)
+- \`VeltRecorderControlPanel mode="floating"\` — floating panel during recording
+- \`VeltRecorderNotes\` — pins recordings to page locations (like comment pins)
+- \`RecordingPlayback\` — floating player in bottom-left showing latest recording using \`useRecorderAddHandler\` + \`VeltRecorderPlayer\`
+
+Follow the \`core-setup\` rule exactly — it has the complete RecordingPlayback component code.`,
     });
   }
 
