@@ -622,15 +622,15 @@ velt-comment-text[comment-available="true"] {
   if (hasRecorder) {
     steps.push({
       title: `Add Velt Recorder with playback and pinned notes`,
-      details: `**READ FIRST:** \`skills/velt-recorder-best-practices/AGENTS.md\` → look up \`core-setup\` and \`core-permissions\` rules. Follow their patterns exactly.
+      details: `**READ FIRST:** \`skills/velt-recorder-best-practices/rules/shared/core/core-setup.md\` — this file contains the COMPLETE implementation code for all 4 recorder components. Do NOT implement from this summary — read the rule file and copy its code examples exactly.
 
-The recorder requires 4 components (all defined in the skill rule):
-- \`VeltRecorderTool type="all"\` — in the toolbar (audio/video/screen recording)
-- \`VeltRecorderControlPanel mode="floating"\` — floating panel during recording
-- \`VeltRecorderNotes\` — pins recordings to page locations (like comment pins)
-- \`RecordingPlayback\` — floating player in bottom-left showing latest recording using \`useRecorderAddHandler\` + \`VeltRecorderPlayer\`
+The recorder requires 4 components. The rule file has complete copy-ready code for all of them:
+1. \`VeltRecorderTool type="all"\` — enables audio, video, AND screen recording (not just video)
+2. \`VeltRecorderControlPanel mode="floating"\` — floating panel during recording
+3. \`VeltRecorderNotes\` — pins recordings to page locations
+4. \`RecordingPlayback\` — floating player using \`useRecorderAddHandler\` + \`VeltRecorderPlayer\` that appears after recording completes
 
-Follow the \`core-setup\` rule exactly — it has the complete RecordingPlayback component code.`,
+⚠️ The RecordingPlayback component is REQUIRED for recordings to be viewable after saving. Without it, recordings are saved but invisible. Copy the complete component from the rule file.`,
     });
   }
 
@@ -766,7 +766,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasComments) skillsList.push(`- ✅ **READ:** \`skills/velt-comments-best-practices/AGENTS.md\` — ${commentType} comments patterns`);
   if (hasCRDT) skillsList.push(`- ✅ **READ:** \`skills/velt-crdt-best-practices/AGENTS.md\` — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
   if (hasNotifications) skillsList.push('- ✅ **READ:** `skills/velt-notifications-best-practices/AGENTS.md` — notifications setup');
-  if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
+  if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/rules/shared/core/core-setup.md` — recorder setup (read this file directly, NOT AGENTS.md)');
   if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md` — single editor mode setup (read this file directly, NOT AGENTS.md)');
   if (hasSelfHostingData) skillsList.push('- ✅ **READ:** `skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md` — self-hosting data providers (read this file directly, NOT AGENTS.md)');
   if (hasActivityLogs) skillsList.push('- ✅ **READ:** `skills/velt-activity-best-practices/rules/shared/core/core-setup.md` — activity logs setup (read this file directly, NOT AGENTS.md)');
