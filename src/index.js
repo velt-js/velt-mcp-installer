@@ -164,13 +164,10 @@ export async function createServer() {
           '\n  Ask ONLY: "Please provide your Velt Auth Token (from https://console.velt.dev)"' +
           '\n  WAIT for user response.' +
           '\n\nSTEP 4 - FEATURE SELECTION (with SKIP option):' +
-          '\n  Ask: "Select features to install OR type SKIP for CLI-only:"' +
-          '\n    📝 Comments (specify type: freestyle/popover/page/text/inline/tiptap/lexical/slate)' +
-          '\n    👥 Presence | 🖱️ Cursors | 🔔 Notifications | 🎥 Recorder' +
-          '\n    📄 CRDT (specify editor: tiptap/codemirror/blocknote)' +
-          '\n    🔒 Single Editor Mode (one user edits at a time, others view)' +
-          '\n    🗄️ Self-Hosting Data (store comments, attachments, user PII on your own database)' +
-          '\n    ⏭️  SKIP = CLI scaffolding only, no feature integration' +
+          '\n  Read the install-velt skill for the full feature list. Present ALL features from the skill to the user.' +
+          '\n  Include SKIP as an option for CLI-only scaffolding.' +
+          '\n  For Comments: ask which type (freestyle/popover/page/text/inline/tiptap/lexical/slate).' +
+          '\n  For CRDT: ask which editor (tiptap/codemirror/blocknote).' +
           '\n  WAIT for user response.' +
           '\n\n=========================================' +
           '\n🚨 IF USER TYPES "SKIP": CLI-ONLY MODE 🚨' +
