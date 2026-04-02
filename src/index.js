@@ -169,6 +169,7 @@ export async function createServer() {
           '\n    👥 Presence | 🖱️ Cursors | 🔔 Notifications | 🎥 Recorder' +
           '\n    📄 CRDT (specify editor: tiptap/codemirror/blocknote)' +
           '\n    🔒 Single Editor Mode (one user edits at a time, others view)' +
+          '\n    🗄️ Self-Hosting Data (store comments, attachments, user PII on your own database)' +
           '\n    ⏭️  SKIP = CLI scaffolding only, no feature integration' +
           '\n  WAIT for user response.' +
           '\n\n=========================================' +
