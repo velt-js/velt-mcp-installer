@@ -688,21 +688,20 @@ The \`dataProviders\` prop MUST be set on VeltProvider BEFORE identify() is call
   if (hasActivityLogs) {
     steps.push({
       title: `Add Activity Log panel with real-time event feed`,
-      details: `**READ FIRST:** \`skills/velt-activity-best-practices/rules/shared/core/core-setup.md\` — Activity Logs MUST be enabled in Velt Console (console.velt.dev > Configuration > Activity Logs > ON). Then read \`rules/react/data/data-subscribe-hook.md\` for the useAllActivities hook. Do NOT implement from this summary — read the rule files and copy their code examples exactly.
+      details: `**READ FIRST:** \`skills/velt-activity-best-practices/rules/shared/core/core-activity-log-component.md\` — this file documents the pre-built \`VeltActivityLog\` component. Then read \`rules/shared/core/core-setup.md\` for console enablement. Do NOT build a custom activity feed from scratch — use the drop-in component.
 
-⚠️ **SDK Version:** Activity Logs hooks (\`useAllActivities\`, \`useActivityUtils\`) require \`@veltdev/react@5.0.2-beta.13\` or later. Verify with \`npm list @veltdev/react\`. If older, run \`npm install @veltdev/react@5.0.2-beta.13\`.
+⚠️ **SDK Version:** \`VeltActivityLog\` and activity hooks require \`@veltdev/react@5.0.2-beta.13\` or later. Verify with \`npm list @veltdev/react\`. If older, run \`npm install @veltdev/react@5.0.2-beta.13\`.
 
-Activity Logs is a frontend-only feature — no backend routes needed. Implementation requires:
+Activity Logs is a frontend-only feature — no backend routes needed. Implementation:
 
-1. **ActivityLog component** — right-side panel showing timeline of events grouped by date
-2. **useAllActivities()** hook — subscribes to real-time activity feed, returns null while loading
-3. **Toggle button** — "View Activity Log" pill button on the document page header
-4. **Activity types** — comment created, comment edited, reaction added, priority changed, video recording added
+1. **\`<VeltActivityLog />\`** — pre-built component that renders a complete activity feed with date grouping, filtering, loading/empty states. Import from \`@veltdev/react\`. Place it in a toggleable right-side panel on the document page.
+2. **Toggle button** — "View Activity Log" pill button on the document page header to show/hide the panel.
+3. **Console enablement** — Activity Logs MUST be enabled in Velt Console (console.velt.dev > Configuration > Activity Logs > ON).
 
-The panel should be: white background, rounded corners, "Activity Log" header with "All Activity" dropdown and close button. Each event shows an icon, description, and relative timestamp. Events grouped under date headers (TODAY, date).
+Do NOT build a custom activity feed using \`useAllActivities()\` — use the \`VeltActivityLog\` component instead. It handles date grouping, event icons, filtering, and all activity types (comments, reactions, priority changes, recordings) automatically.
 
-**After reading the core rules, also read:**
-- \`rules/shared/config/config-action-type-filters.md\` — type-safe filtering constants
+**After reading the component rule, also read:**
+- \`rules/shared/core/core-setup.md\` — console enablement (required)
 - \`rules/shared/debug/debug-common-issues.md\` — troubleshooting (console enablement is #1 issue)`,
     });
   }
@@ -771,7 +770,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/rules/shared/core/core-setup.md` — recorder setup (read this file directly, NOT AGENTS.md)');
   if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md` — single editor mode setup (read this file directly, NOT AGENTS.md)');
   if (hasSelfHostingData) skillsList.push('- ✅ **READ:** `skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md` — self-hosting data providers (read this file directly, NOT AGENTS.md)');
-  if (hasActivityLogs) skillsList.push('- ✅ **READ:** `skills/velt-activity-best-practices/rules/shared/core/core-setup.md` — activity logs setup (read this file directly, NOT AGENTS.md)');
+  if (hasActivityLogs) skillsList.push('- ✅ **READ:** `skills/velt-activity-best-practices/rules/shared/core/core-activity-log-component.md` — VeltActivityLog drop-in component (read this file directly, NOT AGENTS.md)');
 
   const additionalInfo = [
     {
