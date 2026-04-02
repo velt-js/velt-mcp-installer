@@ -79,6 +79,12 @@ export const VELT_DOCS_URLS = {
     reactions: 'https://docs.velt.dev/self-host-data/reactions',
   },
 
+  // Activity Logs
+  'activity-logs': {
+    overview: 'https://docs.velt.dev/activity-logs/overview',
+    setup: 'https://docs.velt.dev/activity-logs/setup',
+  },
+
 };
 
 /**

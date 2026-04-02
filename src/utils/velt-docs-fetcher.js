@@ -152,6 +152,17 @@ export const SKILL_RULE_PATHS = {
       'backend-database-patterns',
     ],
   },
+  'activity-logs': {
+    skill: 'velt-activity-best-practices',
+    agentsIndex: 'skills/velt-activity-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'data-subscribe-hook',
+      'data-create-custom-hook',
+      'config-action-type-filters',
+      'debug-common-issues',
+    ],
+  },
 };
 
 /**

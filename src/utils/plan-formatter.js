@@ -291,6 +291,7 @@ export function createMultiFeaturePlan(options) {
   const hasCRDT = features.includes('crdt');
   const hasSingleEditor = features.includes('single-editor-mode');
   const hasSelfHostingData = features.includes('self-hosting-data');
+  const hasActivityLogs = features.includes('activity-logs');
 
   const featureList = [];
   if (hasComments) featureList.push(`${commentType.charAt(0).toUpperCase() + commentType.slice(1)} Comments`);
@@ -301,6 +302,7 @@ export function createMultiFeaturePlan(options) {
   if (hasCRDT) featureList.push(`CRDT (${crdtEditorType ? crdtEditorType.charAt(0).toUpperCase() + crdtEditorType.slice(1) : 'Collaborative Editing'})`);
   if (hasSingleEditor) featureList.push('Single Editor Mode');
   if (hasSelfHostingData) featureList.push('Self-Hosting Data');
+  if (hasActivityLogs) featureList.push('Activity Logs');
 
   const locationText = veltProviderLocation === 'auto-detect'
     ? 'the appropriate page file'
@@ -682,6 +684,27 @@ The \`dataProviders\` prop MUST be set on VeltProvider BEFORE identify() is call
     });
   }
 
+  // Step: Activity Logs setup (conditional)
+  if (hasActivityLogs) {
+    steps.push({
+      title: `Add Activity Log panel with real-time event feed`,
+      details: `**READ FIRST:** \`skills/velt-activity-best-practices/rules/shared/core/core-setup.md\` — Activity Logs MUST be enabled in Velt Console (console.velt.dev > Configuration > Activity Logs > ON). Then read \`rules/react/data/data-subscribe-hook.md\` for the useAllActivities hook. Do NOT implement from this summary — read the rule files and copy their code examples exactly.
+
+Activity Logs is a frontend-only feature — no backend routes needed. Implementation requires:
+
+1. **ActivityLog component** — right-side panel showing timeline of events grouped by date
+2. **useAllActivities()** hook — subscribes to real-time activity feed, returns null while loading
+3. **Toggle button** — "View Activity Log" pill button on the document page header
+4. **Activity types** — comment created, comment edited, reaction added, priority changed, video recording added
+
+The panel should be: white background, rounded corners, "Activity Log" header with "All Activity" dropdown and close button. Each event shows an icon, description, and relative timestamp. Events grouped under date headers (TODAY, date).
+
+**After reading the core rules, also read:**
+- \`rules/shared/config/config-action-type-filters.md\` — type-safe filtering constants
+- \`rules/shared/debug/debug-common-issues.md\` — troubleshooting (console enablement is #1 issue)`,
+    });
+  }
+
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
@@ -746,6 +769,7 @@ The app MUST support testing with two different users. Follow the skill pattern:
   if (hasRecorder) skillsList.push('- ✅ **READ:** `skills/velt-recorder-best-practices/AGENTS.md` — recorder setup');
   if (hasSingleEditor) skillsList.push('- ✅ **READ:** `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md` — single editor mode setup (read this file directly, NOT AGENTS.md)');
   if (hasSelfHostingData) skillsList.push('- ✅ **READ:** `skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md` — self-hosting data providers (read this file directly, NOT AGENTS.md)');
+  if (hasActivityLogs) skillsList.push('- ✅ **READ:** `skills/velt-activity-best-practices/rules/shared/core/core-setup.md` — activity logs setup (read this file directly, NOT AGENTS.md)');
 
   const additionalInfo = [
     {

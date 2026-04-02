@@ -256,7 +256,7 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt', 'single-editor-mode', 'self-hosting-data'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt', 'single-editor-mode', 'self-hosting-data', 'activity-logs'],
               },
               description: 'Features to install (guided mode only).',
             },
