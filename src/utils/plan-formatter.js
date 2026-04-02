@@ -690,6 +690,8 @@ The \`dataProviders\` prop MUST be set on VeltProvider BEFORE identify() is call
       title: `Add Activity Log panel with real-time event feed`,
       details: `**READ FIRST:** \`skills/velt-activity-best-practices/rules/shared/core/core-setup.md\` — Activity Logs MUST be enabled in Velt Console (console.velt.dev > Configuration > Activity Logs > ON). Then read \`rules/react/data/data-subscribe-hook.md\` for the useAllActivities hook. Do NOT implement from this summary — read the rule files and copy their code examples exactly.
 
+⚠️ **SDK Version:** Activity Logs hooks (\`useAllActivities\`, \`useActivityUtils\`) require \`@veltdev/react@5.0.2-beta.13\` or later. Verify with \`npm list @veltdev/react\`. If older, run \`npm install @veltdev/react@5.0.2-beta.13\`.
+
 Activity Logs is a frontend-only feature — no backend routes needed. Implementation requires:
 
 1. **ActivityLog component** — right-side panel showing timeline of events grouped by date
