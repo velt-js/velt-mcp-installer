@@ -145,7 +145,7 @@ export async function createServer() {
           '\n\n📚 REQUIRED: Velt Agent Skills must be installed.' +
           '\nSkills provide ALL implementation patterns. Without them, this tool cannot generate a working plan.' +
           '\nDo NOT use Velt Docs MCP as a substitute for skills.' +
-          '\nSkills: velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices, velt-recorder-best-practices' +
+          '\nSkills: velt-setup-best-practices, velt-comments-best-practices, velt-crdt-best-practices, velt-notifications-best-practices, velt-recorder-best-practices, velt-presence-best-practices, velt-cursors-best-practices, velt-huddle-best-practices, velt-single-editor-mode-best-practices, velt-self-hosting-data-best-practices, velt-activity-best-practices' +
           '\nThe generated plan tells the AI which skill files to READ before each implementation step.' +
           '\n\n🚨🚨🚨 CRITICAL: ASK QUESTIONS ONE AT A TIME 🚨🚨🚨' +
           '\nDO NOT dump all questions in one message.' +
@@ -256,7 +256,7 @@ export async function createServer() {
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt', 'single-editor-mode', 'self-hosting-data', 'activity-logs'],
+                enum: ['comments', 'presence', 'cursors', 'notifications', 'recorder', 'crdt', 'single-editor-mode', 'self-hosting-data', 'activity-logs', 'huddle'],
               },
               description: 'Features to install (guided mode only).',
             },

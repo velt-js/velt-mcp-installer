@@ -41,9 +41,14 @@ export const FEATURE_SKILL_MAP = {
   // Single Editor Mode
   'single-editor-mode': 'velt-single-editor-mode-best-practices',
 
-  // Features WITHOUT skills coverage — use docs URLs
-  // presence: null,
-  // cursors: null,
+  // Presence
+  presence: 'velt-presence-best-practices',
+
+  // Cursors
+  cursors: 'velt-cursors-best-practices',
+
+  // Huddle
+  huddle: 'velt-huddle-best-practices',
 };
 
 /**
@@ -161,6 +166,36 @@ export const SKILL_RULE_PATHS = {
       'data-create-custom-hook',
       'config-action-type-filters',
       'debug-common-issues',
+    ],
+  },
+  presence: {
+    skill: 'velt-presence-best-practices',
+    agentsIndex: 'skills/velt-presence-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'data-presence-hooks',
+      'config-inactivity-time',
+      'config-location-presence',
+    ],
+  },
+  cursors: {
+    skill: 'velt-cursors-best-practices',
+    agentsIndex: 'skills/velt-cursors-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'data-cursor-hooks',
+      'config-allowed-elements',
+      'config-avatar-mode',
+    ],
+  },
+  huddle: {
+    skill: 'velt-huddle-best-practices',
+    agentsIndex: 'skills/velt-huddle-best-practices/AGENTS.md',
+    keyRules: [
+      'core-setup',
+      'config-huddle-types',
+      'config-chat',
+      'config-flock-mode',
     ],
   },
 };
