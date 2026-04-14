@@ -25,7 +25,9 @@ function formatPrerequisiteCheck(features) {
   section += `Before implementing ANY step below, invoke these skills:\n\n`;
 
   for (const skill of requiredSkills) {
-    section += `- **Use the \`${skill}\` skill**\n`;
+    const paths = Object.values(SKILL_RULE_PATHS).find(p => p.skill === skill);
+    const agentsPath = paths ? paths.agentsIndex : `skills/${skill}/AGENTS.md`;
+    section += `- **Use the \`${skill}\` skill** — READ \`${agentsPath}\`\n`;
   }
 
   section += `\nTo check: try reading \`skills/velt-setup-best-practices/AGENTS.md\`\n\n`;
@@ -58,7 +60,10 @@ function formatSkillsSourceSection(features, options = {}) {
       if (!seen.has(ref.skillName)) {
         seen.add(ref.skillName);
         const feats = skillRefs.filter(r => r.skillName === ref.skillName).map(r => r.feature);
+        const paths = Object.values(SKILL_RULE_PATHS).find(p => p.skill === ref.skillName);
+        const agentsPath = paths ? paths.agentsIndex : `skills/${ref.skillName}/AGENTS.md`;
         section += `- **Use the \`${ref.skillName}\` skill** — covers: ${feats.join(', ')}\n`;
+        section += `  - READ: \`${agentsPath}\`\n`;
       }
     }
     section += `\n`;
@@ -170,7 +175,7 @@ export function createVeltCommentsPlan(options) {
   // Step 2: Wire VeltProvider + CLI components
   steps.push({
     title: `Wire VeltProvider and CLI-generated components in ${locationText}`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`provider-velt-provider-setup\` rule exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up the \`provider-velt-provider-setup\` rule. Copy its code examples exactly. Do NOT improvise.
 
 Use the CLI-generated files in \`components/velt/\`. Wire them following the skill patterns:
 - Import \`useVeltAuthProvider\` from \`components/velt/VeltInitializeUser.tsx\`
@@ -186,7 +191,7 @@ Use the CLI-generated files in \`components/velt/\`. Wire them following the ski
   // Step 3: Configure authentication
   steps.push({
     title: `Set up authentication and JWT token generation`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`identity-jwt-generation\` and \`identity-user-object-shape\` rules exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up the \`identity-jwt-generation\` and \`identity-user-object-shape\` rules. Copy their code examples exactly. Do NOT improvise.
 
 Follow the skill patterns to:
 - Configure \`app/api/velt/token/route.ts\` for server-side JWT generation
@@ -204,7 +209,7 @@ Required variables: NEXT_PUBLIC_VELT_API_KEY, VELT_API_KEY, VELT_AUTH_TOKEN.`,
   // Step 5: Set up two-user testing
   steps.push({
     title: `Set up two-user testing`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`debug-multi-user-testing\` rule exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up the \`debug-multi-user-testing\` rule. Copy its code examples exactly. Do NOT improvise.
 
 The app MUST support testing with two different users. Follow the skill pattern:
 - Provide sign-in buttons for both Alice and Bob
@@ -236,8 +241,8 @@ The app MUST support testing with two different users. Follow the skill pattern:
       title: '🚨 CRITICAL IMPLEMENTATION RULES',
       content: `**Agent Skills are the ONLY source for implementation patterns.**
 
-- ✅ **Use the \`velt-setup-best-practices\` skill** — VeltProvider, auth, document identity
-- ✅ **Use the \`velt-comments-best-practices\` skill** — ${commentType} comments patterns
+- ✅ **Use the \`velt-setup-best-practices\` skill** — READ \`skills/velt-setup-best-practices/AGENTS.md\`
+- ✅ **Use the \`velt-comments-best-practices\` skill** — READ \`skills/velt-comments-best-practices/AGENTS.md\`
 - Do NOT reimplement patterns from scratch — follow the skill rules exactly
 - Do NOT query Velt Docs MCP during implementation — skills have everything needed
 - If a skill rule and this plan conflict, the skill rule is correct`,
@@ -316,7 +321,7 @@ export function createMultiFeaturePlan(options) {
   // Step 2: Wire VeltProvider + CLI components
   steps.push({
     title: `Wire VeltProvider and CLI-generated components in ${locationText}`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`provider-velt-provider-setup\` and \`identity-auth-provider\` rules exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`provider-velt-provider-setup\` and \`identity-auth-provider\` rules. Copy their code examples exactly. Do NOT improvise.
 
 Use the CLI-generated files in \`components/velt/\`. Wire them following the skill patterns:
 - Import \`useVeltAuthProvider\` from \`components/velt/VeltInitializeUser.tsx\`
@@ -426,7 +431,7 @@ export function TiptapCollabEditor({ documentId, initialContent }: { documentId:
 
     steps.push({
       title: `Create ${editorName} CRDT editor component`,
-      details: `**Use the \`velt-crdt-best-practices\` skill** — then follow these rules exactly: ${skillRules}.
+      details: `**Use the \`velt-crdt-best-practices\` skill to implement this step.** READ the rule files at \`skills/velt-crdt-best-practices/AGENTS.md\` → look up these rules: ${skillRules}. Read each rule file completely and copy its code examples exactly. Do NOT improvise.
 
 Create \`components/velt/${editorName}CollabEditor.tsx\` following the skill patterns.
 
@@ -440,7 +445,7 @@ ${requirements}`,
   if (hasComments && hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Integrate TiptapVeltComments extension in editor`,
-      details: `**Use the \`velt-crdt-best-practices\` skill** — then follow the \`tiptap-comments-integration\` rule exactly.
+      details: `**Use the \`velt-crdt-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-crdt-best-practices/AGENTS.md\` → look up the \`tiptap-comments-integration\` rule. Copy its code exactly. Do NOT improvise.
 
 ⚠️ WITHOUT THESE, THE APP WILL FREEZE WHEN COMMENTS ARE TRIGGERED.
 
@@ -504,7 +509,7 @@ useEffect(() => {
   if (hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Load editor with next/dynamic (SSR safety)`,
-      details: `**Use the \`velt-crdt-best-practices\` skill** — then follow the \`tiptap-nextjs-ssr\` rule exactly.
+      details: `**Use the \`velt-crdt-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-crdt-best-practices/AGENTS.md\` → look up the \`tiptap-nextjs-ssr\` rule. Copy its code exactly. Do NOT improvise.
 
 Tiptap and @veltdev/tiptap-velt-comments use browser-only APIs. In Next.js, the editor component MUST be loaded with \`next/dynamic\` and \`ssr: false\` in the page that renders it. Without this, the app will crash with a \`g.catch is not a function\` error.
 
@@ -536,7 +541,7 @@ const TiptapCollabEditor = dynamic(
   if (hasCRDT && crdtEditorType === 'tiptap') {
     steps.push({
       title: `MANDATORY: Add collaboration cursor CSS to globals.css`,
-      details: `**Use the \`velt-crdt-best-practices\` skill** — then follow the \`tiptap-cursor-css\` rule exactly.
+      details: `**Use the \`velt-crdt-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-crdt-best-practices/AGENTS.md\` → look up the \`tiptap-cursor-css\` rule. Copy its code exactly. Do NOT improvise.
 
 Without this CSS, remote user cursors appear as thick full-width blocks instead of thin carets. Add the CSS below to your globals.css file.`,
       codeExamples: [
@@ -621,7 +626,7 @@ velt-comment-text[comment-available="true"] {
   if (hasRecorder) {
     steps.push({
       title: `Add Velt Recorder with playback and pinned notes`,
-      details: `**Use the \`velt-recorder-best-practices\` skill** — then follow the \`core-setup\` rule exactly. It contains the COMPLETE implementation code for all 4 recorder components. Do NOT implement from this summary — read the rule file and copy its code examples exactly.
+      details: `**Use the \`velt-recorder-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-recorder-best-practices/rules/shared/core/core-setup.md\` — it contains the COMPLETE implementation code for all 4 recorder components. Copy its code examples exactly. Do NOT improvise or build from scratch.
 
 The recorder requires 4 components. The rule file has complete copy-ready code for all of them:
 1. \`VeltRecorderTool type="all"\` — enables audio, video, AND screen recording (not just video)
@@ -637,7 +642,7 @@ The recorder requires 4 components. The rule file has complete copy-ready code f
   if (hasSingleEditor) {
     steps.push({
       title: `Add Single Editor Mode with live sync and editor status UI`,
-      details: `**Use the \`velt-single-editor-mode-best-practices\` skill** — then follow the \`core-setup\` rule exactly. It contains the COMPLETE implementation code for both files below. Do NOT implement from this summary — read the rule file and copy its code examples exactly.
+      details: `**Use the \`velt-single-editor-mode-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md\` — it contains the COMPLETE implementation code for both files below. Copy its code examples exactly. Do NOT improvise or build from scratch.
 
 Single Editor Mode requires changes in TWO files. The rule file has complete, copy-ready code for both:
 
@@ -658,7 +663,7 @@ Single Editor Mode requires changes in TWO files. The rule file has complete, co
   if (hasSelfHostingData) {
     steps.push({
       title: `Configure self-hosting data providers and backend API routes`,
-      details: `**Use the \`velt-self-hosting-data-best-practices\` skill** — then follow the \`core-provider-setup\` rule for VeltProvider dataProviders configuration and the \`core-response-format\` rule for the required response contract. Do NOT implement from this summary — read the rule files and copy their code examples exactly.
+      details: `**Use the \`velt-self-hosting-data-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md\` for VeltProvider dataProviders configuration, then READ \`rules/shared/core/core-response-format.md\` for the required response contract. Copy their code examples exactly. Do NOT improvise or build from scratch.
 
 Self-hosting stores user-generated content (comments, attachments, reactions, user PII) on YOUR infrastructure instead of Velt's cloud. Implementation requires THREE things:
 
@@ -687,7 +692,7 @@ The \`dataProviders\` prop MUST be set on VeltProvider BEFORE identify() is call
   if (hasActivityLogs) {
     steps.push({
       title: `Add Activity Log panel with real-time event feed`,
-      details: `**Use the \`velt-activity-best-practices\` skill** — then follow the \`core-activity-log-component\` rule for the pre-built \`VeltActivityLog\` component and the \`core-setup\` rule for console enablement. Do NOT build a custom activity feed from scratch — use the drop-in component.
+      details: `**Use the \`velt-activity-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-activity-best-practices/rules/shared/core/core-activity-log-component.md\` FIRST — it has the COMPLETE drop-in component code. Read its "Common Mistakes — DO NOT" section before writing any code. Then READ \`rules/shared/core/core-setup.md\` for console enablement. Copy the code examples exactly. Do NOT build a custom activity feed — Do NOT use dynamic require() — Do NOT wrap VeltActivityLog in a custom panel with a duplicate header.
 
 ⚠️ **SDK Version:** \`VeltActivityLog\` and activity hooks require \`@veltdev/react@5.0.2-beta.13\` or later. Verify with \`npm list @veltdev/react\`. If older, run \`npm install @veltdev/react@5.0.2-beta.13\`.
 
@@ -709,7 +714,7 @@ Do NOT build a custom activity feed using \`useAllActivities()\` — use the \`V
   if (hasPresence) {
     steps.push({
       title: `Add Presence avatars and online status`,
-      details: `**Use the \`velt-presence-best-practices\` skill** — then follow the \`core-setup\` rule exactly.
+      details: `**Use the \`velt-presence-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-presence-best-practices/AGENTS.md\` → look up the \`core-setup\` rule. Copy its code examples exactly. Do NOT improvise.
 
 Presence shows real-time user avatars and online/away/offline status. Implementation:
 1. Add \`<VeltPresence />\` component in your header/toolbar area
@@ -724,7 +729,7 @@ The skill has complete component props, configuration options, and data hooks.`,
   if (hasCursors) {
     steps.push({
       title: `Add live cursor tracking`,
-      details: `**Use the \`velt-cursors-best-practices\` skill** — then follow the \`core-setup\` rule exactly.
+      details: `**Use the \`velt-cursors-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-cursors-best-practices/AGENTS.md\` → look up the \`core-setup\` rule. Copy its code examples exactly. Do NOT improvise.
 
 Cursors show real-time cursor positions of other users. Implementation:
 1. Add \`<VeltCursor />\` component inside your VeltProvider
@@ -739,7 +744,7 @@ The skill has complete component props, configuration options, and data hooks.`,
   if (hasHuddle) {
     steps.push({
       title: `Add Huddle for audio/video/screen sharing`,
-      details: `**Use the \`velt-huddle-best-practices\` skill** — then follow the \`core-setup\` rule exactly.
+      details: `**Use the \`velt-huddle-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-huddle-best-practices/AGENTS.md\` → look up the \`core-setup\` rule. Copy its code examples exactly. Do NOT improvise.
 
 Huddle enables real-time audio, video, and screen sharing sessions. Implementation:
 1. Add \`<VeltHuddle />\` component inside your VeltProvider
@@ -754,7 +759,7 @@ The skill has complete component props, configuration options, and webhook integ
   // Step 7: Authentication setup
   steps.push({
     title: `Set up authentication and JWT token generation`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`identity-jwt-generation\` and \`identity-user-object-shape\` rules exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up \`identity-jwt-generation\` and \`identity-user-object-shape\` rules. Copy their code examples exactly. Do NOT improvise.
 
 Follow the skill patterns to:
 - Configure \`app/api/velt/token/route.ts\` for server-side JWT generation
@@ -772,7 +777,7 @@ Required variables: NEXT_PUBLIC_VELT_API_KEY, VELT_API_KEY, VELT_AUTH_TOKEN.`,
   // Step 9: Two-user testing
   steps.push({
     title: `Set up two-user testing`,
-    details: `**Use the \`velt-setup-best-practices\` skill** — then follow the \`debug-multi-user-testing\` rule exactly.
+    details: `**Use the \`velt-setup-best-practices\` skill to implement this step.** READ the rule file at \`skills/velt-setup-best-practices/AGENTS.md\` → look up the \`debug-multi-user-testing\` rule. Copy its code exactly. Do NOT improvise.
 
 The app MUST support testing with two different users. Follow the skill pattern:
 - Provide sign-in buttons for both Alice and Bob
@@ -809,17 +814,17 @@ The app MUST support testing with two different users. Follow the skill pattern:
 
   // Additional info
   const skillsList = [];
-  skillsList.push('- ✅ **Use the `velt-setup-best-practices` skill** — VeltProvider, auth, document identity');
-  if (hasComments) skillsList.push(`- ✅ **Use the \`velt-comments-best-practices\` skill** — ${commentType} comments patterns`);
-  if (hasCRDT) skillsList.push(`- ✅ **Use the \`velt-crdt-best-practices\` skill** — ${crdtEditorType || 'collaborative editing'} CRDT patterns`);
-  if (hasPresence) skillsList.push('- ✅ **Use the `velt-presence-best-practices` skill** — presence avatars and online status');
-  if (hasCursors) skillsList.push('- ✅ **Use the `velt-cursors-best-practices` skill** — live cursor tracking');
-  if (hasNotifications) skillsList.push('- ✅ **Use the `velt-notifications-best-practices` skill** — notifications setup');
-  if (hasRecorder) skillsList.push('- ✅ **Use the `velt-recorder-best-practices` skill** — recorder setup');
-  if (hasSingleEditor) skillsList.push('- ✅ **Use the `velt-single-editor-mode-best-practices` skill** — single editor mode setup');
-  if (hasSelfHostingData) skillsList.push('- ✅ **Use the `velt-self-hosting-data-best-practices` skill** — self-hosting data providers');
-  if (hasActivityLogs) skillsList.push('- ✅ **Use the `velt-activity-best-practices` skill** — VeltActivityLog drop-in component');
-  if (hasHuddle) skillsList.push('- ✅ **Use the `velt-huddle-best-practices` skill** — audio/video/screen sharing huddles');
+  skillsList.push('- ✅ **Use the `velt-setup-best-practices` skill** — READ `skills/velt-setup-best-practices/AGENTS.md`');
+  if (hasComments) skillsList.push(`- ✅ **Use the \`velt-comments-best-practices\` skill** — READ \`skills/velt-comments-best-practices/AGENTS.md\``);
+  if (hasCRDT) skillsList.push(`- ✅ **Use the \`velt-crdt-best-practices\` skill** — READ \`skills/velt-crdt-best-practices/AGENTS.md\``);
+  if (hasPresence) skillsList.push('- ✅ **Use the `velt-presence-best-practices` skill** — READ `skills/velt-presence-best-practices/AGENTS.md`');
+  if (hasCursors) skillsList.push('- ✅ **Use the `velt-cursors-best-practices` skill** — READ `skills/velt-cursors-best-practices/AGENTS.md`');
+  if (hasNotifications) skillsList.push('- ✅ **Use the `velt-notifications-best-practices` skill** — READ `skills/velt-notifications-best-practices/AGENTS.md`');
+  if (hasRecorder) skillsList.push('- ✅ **Use the `velt-recorder-best-practices` skill** — READ `skills/velt-recorder-best-practices/rules/shared/core/core-setup.md`');
+  if (hasSingleEditor) skillsList.push('- ✅ **Use the `velt-single-editor-mode-best-practices` skill** — READ `skills/velt-single-editor-mode-best-practices/rules/shared/core/core-setup.md`');
+  if (hasSelfHostingData) skillsList.push('- ✅ **Use the `velt-self-hosting-data-best-practices` skill** — READ `skills/velt-self-hosting-data-best-practices/rules/shared/core/core-provider-setup.md`');
+  if (hasActivityLogs) skillsList.push('- ✅ **Use the `velt-activity-best-practices` skill** — READ `skills/velt-activity-best-practices/rules/shared/core/core-activity-log-component.md`');
+  if (hasHuddle) skillsList.push('- ✅ **Use the `velt-huddle-best-practices` skill** — READ `skills/velt-huddle-best-practices/AGENTS.md`');
 
   const additionalInfo = [
     {
@@ -828,7 +833,9 @@ The app MUST support testing with two different users. Follow the skill pattern:
 
 ${skillsList.join('\n')}
 
-- Do NOT reimplement patterns from scratch — follow the skill rules exactly
+- For EACH step above, READ the specified rule file COMPLETELY before writing any code
+- COPY the code examples from the rule file — do NOT improvise or build from scratch
+- If a rule file has a "Common Mistakes — DO NOT" section, read it FIRST
 - If a skill rule and this plan conflict, the skill rule is correct
 - Do NOT query Velt Docs MCP during implementation — skills have everything needed
 - Do NOT create files outside \`components/velt/\` unless necessary for app-specific wiring`,
@@ -899,10 +906,10 @@ ${validationLines}
 ## 📋 Next Steps
 
 **Next:** Install agent-skills via \`npx skills add velt-js/agent-skills\`, then use these skills:
-- **Use the \`velt-setup-best-practices\` skill** — VeltProvider wiring, auth, document setup
-- **Use the \`velt-comments-best-practices\` skill** — comments integration
-- **Use the \`velt-crdt-best-practices\` skill** — CRDT/collaborative editing
-- **Use the \`velt-notifications-best-practices\` skill** — notifications
+- **Use the \`velt-setup-best-practices\` skill** — READ \`skills/velt-setup-best-practices/AGENTS.md\`
+- **Use the \`velt-comments-best-practices\` skill** — READ \`skills/velt-comments-best-practices/AGENTS.md\`
+- **Use the \`velt-crdt-best-practices\` skill** — READ \`skills/velt-crdt-best-practices/AGENTS.md\`
+- **Use the \`velt-notifications-best-practices\` skill** — READ \`skills/velt-notifications-best-practices/AGENTS.md\`
 
 Or re-run the installer with specific features (don't type SKIP) for guided setup.
 
@@ -910,7 +917,7 @@ Or re-run the installer with specific features (don't type SKIP) for guided setu
 
 ## ⚠️ Common Issues
 
-**Use the \`velt-setup-best-practices\` skill** and follow the \`debug-common-issues\` rule for:
+**Use the \`velt-setup-best-practices\` skill** — READ \`skills/velt-setup-best-practices/AGENTS.md\` → \`debug-common-issues\` rule for:
 - "Velt API key not found" — check .env.local
 - "Please set document id" — check VeltInitializeDocument
 - "Failed to authenticate user" — check user object fields

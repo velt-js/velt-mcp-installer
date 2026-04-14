@@ -222,7 +222,10 @@ export async function createServer() {
           '\n• ASK ONE QUESTION AT A TIME - never batch questions' +
           '\n• Check tool response "status" field to know next action' +
           '\n• NO plan without verified scan OR completed manual answers' +
-          '\n• If user says UNSURE, ask who can confirm - do NOT guess',
+          '\n• If user says UNSURE, ask who can confirm - do NOT guess' +
+          '\n• For EACH plan step, READ the specified skill rule file COMPLETELY before implementing' +
+          '\n• COPY code examples from the rule file — do NOT improvise or build from scratch' +
+          '\n• If the rule file has a "Common Mistakes — DO NOT" section, read it FIRST',
         inputSchema: {
           type: 'object',
           properties: {
